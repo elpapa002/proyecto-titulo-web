@@ -1,0 +1,19 @@
+:root {
+  --color-fondo: #FFFFFF;
+  --color-primario: #1D2A3B;
+  --color-secundario: #FFFFFF;
+  --color-terciario: #2B2E33;
+
+  --color-texto-oscuro: #2B2E33;
+  --color-texto-claro: #FFFFFF;
+
+  --sombra-elevada: 0 16px 40px rgba(43, 46, 51, 0.25);
+}
+
+body {
+  background-color: var(--color-fondo);
+  color: var(--color-texto-oscuro);
+  font-family: "Instrument Sans", sans-serif;
+  margin: 0;
+  padding: 0;
+}
