@@ -33,7 +33,8 @@ const ContactStep = ({ datos, errores, cambiarContacto, agregarContacto, cambiar
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <LoginField
-              label={i === 0 ? "Correo" : `Correo ${i + 1}`}
+              label={i === 0 ? "Correo" : `Correo ${i + 1} (Opcional)`}
+              required={i === 0}
               type="email"
               placeholder="camila.rojas@gmail.com"
               value={contacto.correo}
@@ -54,10 +55,10 @@ const ContactStep = ({ datos, errores, cambiarContacto, agregarContacto, cambiar
 
       <Box>
         <Typography variant="h3" sx={{ color: "secondary.main" }}>
-          Dirección de despacho (obligatoria)
+          Dirección de despacho
         </Typography>
         <Typography variant="body2" sx={{ color: "secondary.main", mt: 1 }}>
-          Puedes registrar varias direcciones; la primera queda como principal.
+          Puedes registrar varias direcciones; la primera queda como principal. Los campos con * son obligatorios.
         </Typography>
       </Box>
 
@@ -70,6 +71,7 @@ const ContactStep = ({ datos, errores, cambiarContacto, agregarContacto, cambiar
             <Grid size={{ xs: 12, sm: 6 }}>
               <LoginField
                 label="Calle"
+                required={i === 0}
                 placeholder="Av. Juan Mackenna"
                 value={direccion.calle}
                 onChange={(e) => cambiarDireccion(i, "calle", e.target.value)}
@@ -80,6 +82,7 @@ const ContactStep = ({ datos, errores, cambiarContacto, agregarContacto, cambiar
             <Grid size={{ xs: 12, sm: 6 }}>
               <LoginField
                 label="Número"
+                required={i === 0}
                 placeholder="1270"
                 value={direccion.numero}
                 onChange={(e) => cambiarDireccion(i, "numero", e.target.value)}

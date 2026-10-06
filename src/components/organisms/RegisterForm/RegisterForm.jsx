@@ -8,8 +8,8 @@ import CompanyStep from "../CompanyStep/CompanyStep";
 import { registrarUsuario } from "../../../services/authService";
 import { obtenerUsuarios } from "../../../services/userService";
 import { obtenerCompanias } from "../../../services/companyService";
-import { formatearRut, limpiarRut, validarRut } from "../../../utils/rut";
-import { calcularEdad, correoValido } from "../../../utils/formato";
+import { formatearRut, formatearRutEscritura, limpiarRut, validarRut } from "../../../utils/rut";
+import { calcularEdad, correoValido, errorFechaNacimiento, soloLetras } from "../../../utils/formato";
 import { encriptarClave } from "../../../utils/clave";
 
 const datosIniciales = {
@@ -56,8 +56,12 @@ const RegisterForm = ({ paso, setPaso }) => {
   const quitarError = (clave) => setErrores((actuales) => ({ ...actuales, [clave]: undefined }));
 
   const cambiar = (e) => {
-    setDatos({ ...datos, [e.target.name]: e.target.value });
-    quitarError(e.target.name);
+    const { name, value } = e.target;
+    let valor = value;
+    if (name === "run") valor = formatearRutEscritura(value);
+    if (name === "nombres" || name === "apellidos") valor = soloLetras(value);
+    setDatos({ ...datos, [name]: valor });
+    quitarError(name);
   };
   const cambiarCasilla = (e) => {
     setDatos({ ...datos, [e.target.name]: e.target.checked });
@@ -84,7 +88,8 @@ const RegisterForm = ({ paso, setPaso }) => {
     });
 
   const cambiarEmpresa = (campo, valor) => {
-    setDatos({ ...datos, empresa: { ...datos.empresa, [campo]: valor } });
+    const nuevoValor = campo === "rut" ? formatearRutEscritura(valor) : valor;
+    setDatos({ ...datos, empresa: { ...datos.empresa, [campo]: nuevoValor } });
     quitarError(campo.startsWith("ofrece") ? "oferta" : campo);
   };
 
@@ -92,10 +97,10 @@ const RegisterForm = ({ paso, setPaso }) => {
     const e = {};
     if (!validarRut(datos.run)) e.run = "RUN no válido. Revisa el dígito verificador.";
     else if (usuarios.some((u) => limpiarRut(u.run) === limpiarRut(datos.run))) e.run = "Este RUN ya tiene una cuenta.";
-    if (!datos.fechaNacimiento) e.fechaNacimiento = "Ingresa tu fecha de nacimiento.";
-    else if (calcularEdad(datos.fechaNacimiento) < 0) e.fechaNacimiento = "La fecha no puede ser futura.";
-    if (!datos.nombres.trim()) e.nombres = "Ingresa tus nombres.";
-    if (!datos.apellidos.trim()) e.apellidos = "Ingresa tus apellidos.";
+    const errorFecha = errorFechaNacimiento(datos.fechaNacimiento);
+    if (errorFecha) e.fechaNacimiento = errorFecha;
+    if (datos.nombres.trim().length < 2) e.nombres = "Ingresa tus nombres, solo letras.";
+    if (datos.apellidos.trim().length < 2) e.apellidos = "Ingresa tus apellidos, solo letras.";
     if (datos.clave.length < 8) e.clave = "La clave debe tener al menos 8 caracteres.";
     if (datos.clave2 !== datos.clave) e.clave2 = "Las claves no coinciden.";
     if (!datos.esCliente && !datos.esEmprendedor) e.tipoCuenta = "Marca al menos una opción.";

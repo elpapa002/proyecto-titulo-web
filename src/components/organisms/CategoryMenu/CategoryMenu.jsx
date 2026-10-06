@@ -1,20 +1,10 @@
 import { useState } from "react";
 import { Box, Collapse, List, ListItemButton, ListItemIcon, ListItemText } from "@mui/material";
 import { useLocation } from "react-router-dom";
-import RestaurantOutlinedIcon from "@mui/icons-material/RestaurantOutlined";
-import BrushOutlinedIcon from "@mui/icons-material/BrushOutlined";
-import CheckroomOutlinedIcon from "@mui/icons-material/CheckroomOutlined";
-import HomeRepairServiceOutlinedIcon from "@mui/icons-material/HomeRepairServiceOutlined";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import NavItem from "../../molecules/NavItem/NavItem";
-
-const iconos = {
-  alimentos: <RestaurantOutlinedIcon fontSize="small" />,
-  artesania: <BrushOutlinedIcon fontSize="small" />,
-  vestuario: <CheckroomOutlinedIcon fontSize="small" />,
-  servicios: <HomeRepairServiceOutlinedIcon fontSize="small" />,
-};
+import CategoryIcon from "../../atoms/CategoryIcon/CategoryIcon";
 
 const CategoryMenu = ({ categorias, onNavegar }) => {
   const location = useLocation();
@@ -42,7 +32,9 @@ const CategoryMenu = ({ categorias, onNavegar }) => {
                 "&:hover": { bgcolor: "rgba(255,255,255,0.08)" },
               }}
             >
-              <ListItemIcon>{iconos[categoria.ruta]}</ListItemIcon>
+              <ListItemIcon>
+                <CategoryIcon ruta={categoria.ruta} />
+              </ListItemIcon>
               <ListItemText primary={categoria.nombre} slotProps={{ primary: { sx: { fontSize: 14 } } }} />
               {abierta ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
             </ListItemButton>

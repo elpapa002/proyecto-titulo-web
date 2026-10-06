@@ -10,7 +10,16 @@ import Notice from "../../components/molecules/Notice/Notice";
 import useUser from "../../contexts/UserContext/useUser";
 import { actualizarPerfil, cambiarClave, obtenerUsuarios } from "../../services/userService";
 import { obtenerCompanias } from "../../services/companyService";
-import { calcularEdad, correoValido, formatearFecha, iniciales, nombreCompania } from "../../utils/formato";
+import {
+  calcularEdad,
+  correoValido,
+  errorFechaNacimiento,
+  formatearFecha,
+  hoyIso,
+  iniciales,
+  nombreCompania,
+  soloLetras,
+} from "../../utils/formato";
 import { encriptarClave } from "../../utils/clave";
 
 const tarjeta = { p: 3, borderRadius: 1.5, borderColor: "text.primary" };
@@ -40,8 +49,10 @@ const UserProfileScreen = () => {
   const [aviso, setAviso] = useState("");
 
   const cambiarPerfil = (e) => {
-    setPerfil({ ...perfil, [e.target.name]: e.target.value });
-    setErrores({ ...errores, [e.target.name]: undefined });
+    const { name, value } = e.target;
+    const valor = name === "nombres" || name === "apellidos" ? soloLetras(value) : value;
+    setPerfil({ ...perfil, [name]: valor });
+    setErrores({ ...errores, [name]: undefined });
   };
   const cambiarClaves = (e) => {
     setClaves({ ...claves, [e.target.name]: e.target.value });
@@ -51,8 +62,10 @@ const UserProfileScreen = () => {
   const guardarPerfil = async (evento) => {
     evento.preventDefault();
     const e = {};
-    if (!perfil.nombres.trim()) e.nombres = "Ingresa tus nombres.";
-    if (!perfil.apellidos.trim()) e.apellidos = "Ingresa tus apellidos.";
+    if (perfil.nombres.trim().length < 2) e.nombres = "Ingresa tus nombres, solo letras.";
+    if (perfil.apellidos.trim().length < 2) e.apellidos = "Ingresa tus apellidos, solo letras.";
+    if (perfil.fechaNacimiento && errorFechaNacimiento(perfil.fechaNacimiento))
+      e.fechaNacimiento = errorFechaNacimiento(perfil.fechaNacimiento);
     if (!correoValido(perfil.correo)) e.correo = "Correo no válido.";
     else if (usuarios.some((u) => u.id !== usuario.id && u.correo.toLowerCase() === perfil.correo.toLowerCase()))
       e.correo = "Este correo ya pertenece a otra persona.";
@@ -99,7 +112,7 @@ const UserProfileScreen = () => {
 
   return (
     <>
-      <PageHeader titulo="Mi perfil" subtitulo="Revisa y actualiza tus datos y tu clave de acceso." />
+      <PageHeader titulo="Mi perfil" subtitulo="Revisa y actualiza tus datos y tu clave de acceso. Los campos con * son obligatorios." />
 
       <Grid container spacing={3} sx={{ alignItems: "flex-start" }}>
         <Grid size={{ xs: 12, md: 4 }}>
@@ -149,6 +162,7 @@ const UserProfileScreen = () => {
                     name="nombres"
                     value={perfil.nombres}
                     onChange={cambiarPerfil}
+                    required
                     error={Boolean(errores.nombres)}
                     helperText={errores.nombres}
                   />
@@ -159,6 +173,7 @@ const UserProfileScreen = () => {
                     name="apellidos"
                     value={perfil.apellidos}
                     onChange={cambiarPerfil}
+                    required
                     error={Boolean(errores.apellidos)}
                     helperText={errores.apellidos}
                   />
@@ -179,6 +194,9 @@ const UserProfileScreen = () => {
                     type="date"
                     value={perfil.fechaNacimiento}
                     onChange={cambiarPerfil}
+                    error={Boolean(errores.fechaNacimiento)}
+                    helperText={errores.fechaNacimiento}
+                    slotProps={{ htmlInput: { min: "1900-01-01", max: hoyIso() } }}
                   />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -188,6 +206,7 @@ const UserProfileScreen = () => {
                     type="email"
                     value={perfil.correo}
                     onChange={cambiarPerfil}
+                    required
                     error={Boolean(errores.correo)}
                     helperText={errores.correo}
                   />
@@ -207,6 +226,7 @@ const UserProfileScreen = () => {
                   <PasswordField
                     label="Clave actual"
                     name="actual"
+                    required
                     value={claves.actual}
                     onChange={cambiarClaves}
                     error={Boolean(errores.actual)}
@@ -218,6 +238,7 @@ const UserProfileScreen = () => {
                   <PasswordField
                     label="Nueva clave"
                     name="nueva"
+                    required
                     value={claves.nueva}
                     onChange={cambiarClaves}
                     error={Boolean(errores.nueva)}
@@ -229,6 +250,7 @@ const UserProfileScreen = () => {
                   <PasswordField
                     label="Repite la nueva clave"
                     name="repetida"
+                    required
                     value={claves.repetida}
                     onChange={cambiarClaves}
                     error={Boolean(errores.repetida)}

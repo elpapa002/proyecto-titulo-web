@@ -10,6 +10,7 @@ import {
 
 export const UserProvider = ({ children }) => {
   const [sesion, setSesion] = useState(leerSesion);
+  const [salidaManual, setSalidaManual] = useState(false);
 
   useEffect(() => {
     if (!sesion) return;
@@ -24,11 +25,13 @@ export const UserProvider = ({ children }) => {
     const nueva = { token, usuario, expira: calcularExpiracion(recordar) };
     guardarSesion(nueva, recordar);
     setSesion(nueva);
+    setSalidaManual(false);
   };
 
   const cerrarSesion = () => {
     borrarSesion();
     setSesion(null);
+    setSalidaManual(true);
   };
 
   const actualizarUsuarioSesion = (cambios) => {
@@ -48,6 +51,7 @@ export const UserProvider = ({ children }) => {
     cerrarSesion,
     actualizarUsuarioSesion,
     sesionVigente,
+    salidaManual,
   };
 
   return <UserContext.Provider value={valor}>{children}</UserContext.Provider>;

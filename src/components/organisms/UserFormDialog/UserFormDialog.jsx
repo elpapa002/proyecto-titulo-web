@@ -8,8 +8,8 @@ import CustomButton from "../../atoms/Button/CustomButton";
 import FormField from "../../molecules/FormField/FormField";
 import SelectField from "../../molecules/SelectField/SelectField";
 import RoleOption from "../../molecules/RoleOption/RoleOption";
-import { formatearRut, limpiarRut, validarRut } from "../../../utils/rut";
-import { correoValido } from "../../../utils/formato";
+import { formatearRut, formatearRutEscritura, limpiarRut, validarRut } from "../../../utils/rut";
+import { correoValido, soloLetras } from "../../../utils/formato";
 
 const DOS_MB = 2 * 1024 * 1024;
 
@@ -29,8 +29,12 @@ const UserFormDialog = ({ usuario, usuarios, companias, onCerrar, onGuardar }) =
   const [guardando, setGuardando] = useState(false);
 
   const cambiar = (e) => {
-    setDatos({ ...datos, [e.target.name]: e.target.value });
-    setErrores({ ...errores, [e.target.name]: undefined });
+    const { name, value } = e.target;
+    let valor = value;
+    if (name === "run") valor = formatearRutEscritura(value);
+    if (name === "nombres" || name === "apellidos") valor = soloLetras(value);
+    setDatos({ ...datos, [name]: valor });
+    setErrores({ ...errores, [name]: undefined });
   };
 
   const alternarRol = (rol) => {
@@ -65,8 +69,8 @@ const UserFormDialog = ({ usuario, usuarios, companias, onCerrar, onGuardar }) =
     if (!correoValido(datos.correo)) e.correo = "Correo no válido.";
     else if (otros.some((u) => u.correo.toLowerCase() === datos.correo.trim().toLowerCase()))
       e.correo = "Este correo ya pertenece a otra persona.";
-    if (!datos.nombres.trim()) e.nombres = "Ingresa los nombres.";
-    if (!datos.apellidos.trim()) e.apellidos = "Ingresa los apellidos.";
+    if (datos.nombres.trim().length < 2) e.nombres = "Ingresa los nombres, solo letras.";
+    if (datos.apellidos.trim().length < 2) e.apellidos = "Ingresa los apellidos, solo letras.";
     if (datos.roles.length === 0) e.roles = "Elige al menos un rol.";
     return e;
   };
@@ -115,7 +119,7 @@ const UserFormDialog = ({ usuario, usuarios, companias, onCerrar, onGuardar }) =
     >
       <Box sx={{ px: 3, pt: 3, pr: 7, position: "relative" }}>
         <Typography variant="h2">{editando ? "Editar usuario" : "Agregar nuevo usuario"}</Typography>
-        <Typography sx={{ mt: 0.5 }}>Completa los datos y elige uno o más roles.</Typography>
+        <Typography sx={{ mt: 0.5 }}>Completa los datos y elige uno o más roles. Los campos con * son obligatorios.</Typography>
         <IconButton onClick={onCerrar} aria-label="Cerrar" sx={{ position: "absolute", top: 20, right: 16 }}>
           <CloseIcon />
         </IconButton>
@@ -159,6 +163,8 @@ const UserFormDialog = ({ usuario, usuarios, companias, onCerrar, onGuardar }) =
               placeholder="21.034.567-1"
               value={datos.run}
               onChange={cambiar}
+              required={!editando}
+              slotProps={{ htmlInput: { maxLength: 12 } }}
               disabled={editando}
               error={Boolean(errores.run)}
               helperText={errores.run ?? (editando ? "El RUN no se puede modificar" : "Con dígito verificador")}
@@ -173,6 +179,7 @@ const UserFormDialog = ({ usuario, usuarios, companias, onCerrar, onGuardar }) =
               placeholder="correo@gmail.com"
               value={datos.correo}
               onChange={cambiar}
+              required
               error={Boolean(errores.correo)}
               helperText={errores.correo}
             />
@@ -183,6 +190,7 @@ const UserFormDialog = ({ usuario, usuarios, companias, onCerrar, onGuardar }) =
               name="nombres"
               value={datos.nombres}
               onChange={cambiar}
+              required
               error={Boolean(errores.nombres)}
               helperText={errores.nombres}
             />
@@ -193,6 +201,7 @@ const UserFormDialog = ({ usuario, usuarios, companias, onCerrar, onGuardar }) =
               name="apellidos"
               value={datos.apellidos}
               onChange={cambiar}
+              required
               error={Boolean(errores.apellidos)}
               helperText={errores.apellidos}
             />
@@ -200,7 +209,7 @@ const UserFormDialog = ({ usuario, usuarios, companias, onCerrar, onGuardar }) =
         </Grid>
 
         <Stack spacing={1.5}>
-          <Typography sx={{ fontWeight: 600 }}>Rol</Typography>
+          <Typography sx={{ fontWeight: 600 }}>Rol *</Typography>
           {opcionesRol.map((opcion) => (
             <RoleOption
               key={opcion.rol}

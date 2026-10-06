@@ -3,7 +3,7 @@ import LoginField from "../../molecules/LoginField/LoginField";
 import PasswordField from "../../molecules/PasswordField/PasswordField";
 import CheckOption from "../../molecules/CheckOption/CheckOption";
 import { validarRut } from "../../../utils/rut";
-import { calcularEdad } from "../../../utils/formato";
+import { calcularEdad, hoyIso } from "../../../utils/formato";
 
 const PersonalStep = ({ datos, errores, cambiar, cambiarCasilla }) => {
   const edad = calcularEdad(datos.fechaNacimiento);
@@ -17,7 +17,7 @@ const PersonalStep = ({ datos, errores, cambiar, cambiarCasilla }) => {
           Paso 1: tus datos personales
         </Typography>
         <Typography variant="body2" sx={{ color: "secondary.main", mt: 1 }}>
-          Validamos tu RUN con su dígito verificador y calculamos tu edad con tu fecha de nacimiento.
+          Validamos tu RUN con su dígito verificador y calculamos tu edad con tu fecha de nacimiento. Los campos con * son obligatorios.
         </Typography>
       </Box>
 
@@ -29,6 +29,8 @@ const PersonalStep = ({ datos, errores, cambiar, cambiarCasilla }) => {
             placeholder="20.456.789-1"
             value={datos.run}
             onChange={cambiar}
+            required
+            slotProps={{ htmlInput: { maxLength: 12 } }}
             error={Boolean(errores.run)}
             helperText={errores.run ?? (validarRut(datos.run) ? "RUN válido" : " ")}
           />
@@ -40,6 +42,8 @@ const PersonalStep = ({ datos, errores, cambiar, cambiarCasilla }) => {
             type="date"
             value={datos.fechaNacimiento}
             onChange={cambiar}
+            required
+            slotProps={{ htmlInput: { min: "1900-01-01", max: hoyIso() } }}
             error={Boolean(errores.fechaNacimiento)}
             helperText={errores.fechaNacimiento ?? (textoEdad || " ")}
           />
@@ -51,6 +55,7 @@ const PersonalStep = ({ datos, errores, cambiar, cambiarCasilla }) => {
             placeholder="Camila Andrea"
             value={datos.nombres}
             onChange={cambiar}
+            required
             error={Boolean(errores.nombres)}
             helperText={errores.nombres}
           />
@@ -62,6 +67,7 @@ const PersonalStep = ({ datos, errores, cambiar, cambiarCasilla }) => {
             placeholder="Rojas Pérez"
             value={datos.apellidos}
             onChange={cambiar}
+            required
             error={Boolean(errores.apellidos)}
             helperText={errores.apellidos}
           />
@@ -71,6 +77,7 @@ const PersonalStep = ({ datos, errores, cambiar, cambiarCasilla }) => {
             oscuro
             label="Clave de acceso"
             name="clave"
+            required
             value={datos.clave}
             onChange={cambiar}
             error={Boolean(errores.clave)}
@@ -83,6 +90,7 @@ const PersonalStep = ({ datos, errores, cambiar, cambiarCasilla }) => {
             oscuro
             label="Reescribe la clave"
             name="clave2"
+            required
             value={datos.clave2}
             onChange={cambiar}
             error={Boolean(errores.clave2)}

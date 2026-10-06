@@ -19,7 +19,13 @@ Grupo 2 - Tecnologías Web y Móviles, Sección 1
 2. npm run dev
 3. Abrir http://localhost:5173
 
-Cuenta de prueba: RUN 11.111.111-1 con cualquier clave.
+## Usuarios de ejemplo
+
+Se entra con el RUN y cualquier clave. En el login también están los botones «Recorrer el prototipo como».
+
+1. Cliente: Camila Rojas, RUN 20.456.789-1
+2. Emprendedor: Diego Fuentes (Darnell Bros), RUN 16.903.557-1
+3. Administrador: Carlos Run, RUN 11.111.111-1
 
 ## Commits
 

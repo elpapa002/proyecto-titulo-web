@@ -8,11 +8,12 @@ import RememberUser from "../../molecules/RememberUser/RememberUser";
 import Notice from "../../molecules/Notice/Notice";
 import useUser from "../../../contexts/UserContext/useUser";
 import { iniciarSesion as iniciarSesionApi } from "../../../services/authService";
-import { formatearRut, validarRut } from "../../../utils/rut";
+import { formatearRut, formatearRutEscritura, validarRut } from "../../../utils/rut";
 import { encriptarClave } from "../../../utils/clave";
+import { rutaInicio } from "../../../utils/roles";
 
-const LoginForm = () => {
-  const [datos, setDatos] = useState({ run: "", clave: "", recordar: true });
+const LoginForm = ({ runInicial = "" }) => {
+  const [datos, setDatos] = useState({ run: runInicial, clave: "", recordar: true });
   const [errores, setErrores] = useState({});
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState("");
@@ -23,7 +24,8 @@ const LoginForm = () => {
 
   const cambiar = (e) => {
     const { name, value, type, checked } = e.target;
-    setDatos({ ...datos, [name]: type === "checkbox" ? checked : value });
+    const valor = name === "run" ? formatearRutEscritura(value) : value;
+    setDatos({ ...datos, [name]: type === "checkbox" ? checked : valor });
     setErrores({ ...errores, [name]: undefined });
   };
 
@@ -56,8 +58,9 @@ const LoginForm = () => {
       return;
     }
 
-    iniciarSesion(respuesta.datos.usuario, respuesta.datos.token, datos.recordar);
-    navigate(location.state?.desde ?? "/resumen", { replace: true });
+    const { usuario, token } = respuesta.datos;
+    iniciarSesion(usuario, token, datos.recordar);
+    navigate(location.state?.desde ?? rutaInicio(usuario), { replace: true });
   };
 
   return (
@@ -68,10 +71,11 @@ const LoginForm = () => {
         placeholder="11.111.111-1"
         value={datos.run}
         onChange={cambiar}
-        onBlur={() => validarRut(datos.run) && setDatos({ ...datos, run: formatearRut(datos.run) })}
         error={Boolean(errores.run)}
         helperText={errores.run}
         autoComplete="username"
+        required
+        slotProps={{ htmlInput: { inputMode: "text", maxLength: 12 } }}
       />
       <PasswordField
         oscuro
@@ -82,6 +86,8 @@ const LoginForm = () => {
         error={Boolean(errores.clave)}
         helperText={errores.clave}
         autoComplete="current-password"
+        required
+        autoFocus={Boolean(runInicial)}
       />
 
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>

@@ -5,7 +5,7 @@ import Logo from "../../atoms/Logo/Logo";
 import ProfileMenu from "../ProfileMenu/ProfileMenu";
 
 const PageHeader = ({ titulo, subtitulo, acciones }) => {
-  const { abrirMenu, esMovil } = useOutletContext();
+  const { abrirMenu, esMovil, enTienda } = useOutletContext();
 
   return (
     <Box
@@ -13,7 +13,7 @@ const PageHeader = ({ titulo, subtitulo, acciones }) => {
       sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 2, flexWrap: "wrap", mb: 3 }}
     >
       <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
-        {esMovil && (
+        {esMovil && abrirMenu && (
           <IconButton onClick={abrirMenu} aria-label="Abrir menú" sx={{ mt: -0.5 }}>
             <MenuIcon />
           </IconButton>
@@ -24,10 +24,10 @@ const PageHeader = ({ titulo, subtitulo, acciones }) => {
         </Box>
       </Box>
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
         {acciones}
-        <Logo size={40} borde />
-        <ProfileMenu />
+        {!enTienda && <Logo size={40} borde />}
+        {!enTienda && <ProfileMenu />}
       </Box>
     </Box>
   );

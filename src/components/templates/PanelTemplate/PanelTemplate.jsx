@@ -5,7 +5,7 @@ import Sidebar from "../../organisms/Sidebar/Sidebar";
 import useMediaQuery from "../../../hooks/useMediaQuery/useMediaQuery";
 import "../../../styles/Panel.css";
 
-const PanelTemplate = () => {
+const PanelTemplate = ({ tipo = "admin" }) => {
   const { esMovil } = useMediaQuery();
   const [menuAbierto, setMenuAbierto] = useState(false);
 
@@ -17,11 +17,11 @@ const PanelTemplate = () => {
           onClose={() => setMenuAbierto(false)}
           slotProps={{ paper: { sx: { bgcolor: "text.primary" } } }}
         >
-          <Sidebar onNavegar={() => setMenuAbierto(false)} />
+          <Sidebar tipo={tipo} onNavegar={() => setMenuAbierto(false)} />
         </Drawer>
       ) : (
         <Box component="aside" className="panel-lateral">
-          <Sidebar />
+          <Sidebar tipo={tipo} />
         </Box>
       )}
 

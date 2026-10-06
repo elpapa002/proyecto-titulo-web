@@ -1,11 +1,12 @@
 import { ListItemButton, ListItemIcon, ListItemText } from "@mui/material";
 import { NavLink } from "react-router-dom";
 
-const NavItem = ({ ruta, icono, texto, onClick, sangria = false }) => {
+const NavItem = ({ ruta, icono, texto, onClick, sangria = false, exacta = false }) => {
   return (
     <ListItemButton
       component={NavLink}
       to={ruta}
+      end={exacta}
       onClick={onClick}
       sx={{
         borderRadius: 1,

@@ -28,3 +28,9 @@ export const formatearRut = (rut) => {
   const numero = limpio.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   return `${numero}-${limpio.slice(-1)}`;
 };
+
+export const formatearRutEscritura = (valor) => {
+  const limpio = limpiarRut(valor).replace(/K(?=.)/g, "").slice(0, 9);
+  if (limpio.length < 2) return limpio;
+  return formatearRut(limpio);
+};

@@ -8,6 +8,7 @@ const theme = createTheme({
   palette: {
     primary: { main: PRIMARIO, contrastText: SECUNDARIO },
     secondary: { main: SECUNDARIO, contrastText: PRIMARIO },
+    error: { main: PRIMARIO, contrastText: SECUNDARIO },
     text: { primary: TERCIARIO, secondary: TERCIARIO },
     background: { default: SECUNDARIO, paper: SECUNDARIO },
     divider: TERCIARIO,
@@ -48,7 +49,11 @@ const theme = createTheme({
     },
     MuiOutlinedInput: {
       styleOverrides: {
-        root: { backgroundColor: SECUNDARIO, minHeight: 44 },
+        root: {
+          backgroundColor: SECUNDARIO,
+          minHeight: 44,
+          "&.Mui-error .MuiOutlinedInput-notchedOutline": { borderWidth: 2 },
+        },
         notchedOutline: { borderColor: TERCIARIO },
       },
     },

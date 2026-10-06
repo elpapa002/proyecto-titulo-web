@@ -47,3 +47,20 @@ export const normalizar = (texto) =>
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase();
+
+export const nombreTienda = (usuario, companias) =>
+  companias.find((c) => c.id === usuario.companiaId)?.nombre ?? nombreCorto(usuario);
+
+export const formatearPrecio = (valor) => `$${Number(valor).toLocaleString("es-CL")}`;
+
+export const porcentajeDescuento = (producto) =>
+  producto.precioOferta ? Math.round((1 - producto.precioOferta / producto.precio) * 100) : 0;
+
+export const soloLetras = (texto) => texto.replace(/[^\p{L}\s'-]/gu, "").replace(/\s{2,}/g, " ");
+
+export const errorFechaNacimiento = (fechaIso) => {
+  if (!fechaIso) return "Ingresa tu fecha de nacimiento.";
+  if (Number(fechaIso.slice(0, 4)) < 1900) return "Revisa el año, debe ser desde 1900.";
+  if (fechaIso > hoyIso()) return "La fecha no puede ser futura.";
+  return null;
+};

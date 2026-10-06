@@ -1,24 +1,29 @@
 import { useEffect, useState } from "react";
-import { Box, Breadcrumbs, Chip, Paper, Typography } from "@mui/material";
+import { Box, Breadcrumbs, Chip, Grid, Paper, Typography } from "@mui/material";
 import { NavLink, useParams } from "react-router-dom";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import PageHeader from "../../components/organisms/PageHeader/PageHeader";
+import ProductCard from "../../components/molecules/ProductCard/ProductCard";
 import { obtenerCategorias } from "../../services/catalogService";
+import { obtenerProductos } from "../../services/productService";
 
 const CatalogScreen = () => {
   const { categoria: rutaCategoria, subcategoria: rutaSubcategoria } = useParams();
   const [categorias, setCategorias] = useState([]);
+  const [productos, setProductos] = useState([]);
 
   useEffect(() => {
     const cargar = async () => {
-      const respuesta = await obtenerCategorias();
-      if (respuesta.ok) setCategorias(respuesta.datos);
+      const [respuestaCategorias, respuestaProductos] = await Promise.all([obtenerCategorias(), obtenerProductos()]);
+      if (respuestaCategorias.ok) setCategorias(respuestaCategorias.datos);
+      if (respuestaProductos.ok) setProductos(respuestaProductos.datos);
     };
     cargar();
   }, []);
 
   const categoria = categorias.find((c) => c.ruta === rutaCategoria);
   const subcategoria = categoria?.subcategorias.find((s) => s.ruta === rutaSubcategoria);
+  const deSubcategoria = productos.filter((p) => p.subcategoriaId === subcategoria?.id);
 
   if (!subcategoria) {
     return <PageHeader titulo="Catálogo" subtitulo={categorias.length ? "Esta subcategoría no existe." : "Cargando..."} />;
@@ -49,15 +54,23 @@ const CatalogScreen = () => {
         ))}
       </Box>
 
-      <Paper variant="outlined" sx={{ p: 4, borderRadius: 1.5, borderColor: "text.primary", textAlign: "center" }}>
-        <Inventory2OutlinedIcon sx={{ fontSize: 40 }} />
-        <Typography variant="h3" sx={{ mt: 1 }}>
-          Todavía no hay productos para mostrar
-        </Typography>
-        <Typography sx={{ mt: 1 }}>
-          Los productos de esta subcategoría se van a cargar cuando el catálogo esté conectado al backend.
-        </Typography>
-      </Paper>
+      {deSubcategoria.length > 0 ? (
+        <Grid container spacing={2} columns={{ xs: 2, sm: 3, lg: 4 }}>
+          {deSubcategoria.map((producto) => (
+            <Grid key={producto.id} size={1}>
+              <ProductCard producto={producto} />
+            </Grid>
+          ))}
+        </Grid>
+      ) : (
+        <Paper variant="outlined" sx={{ p: 4, borderRadius: 1.5, borderColor: "text.primary", textAlign: "center" }}>
+          <Inventory2OutlinedIcon sx={{ fontSize: 40 }} />
+          <Typography variant="h3" sx={{ mt: 1 }}>
+            Todavía no hay productos para mostrar
+          </Typography>
+          <Typography sx={{ mt: 1 }}>Ningún emprendedor ha publicado en esta subcategoría.</Typography>
+        </Paper>
+      )}
     </>
   );
 };

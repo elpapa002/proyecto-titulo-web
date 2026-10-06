@@ -1,0 +1,16 @@
+.tienda {
+  min-height: 100vh;
+  background-color: var(--color-fondo);
+}
+
+.tienda-contenido {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+@media (max-width: 900px) {
+  .tienda-contenido {
+    padding: 20px 16px;
+  }
+}

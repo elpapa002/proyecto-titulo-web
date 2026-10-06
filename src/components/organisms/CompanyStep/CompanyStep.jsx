@@ -16,7 +16,7 @@ const CompanyStep = ({ empresa, errores, cambiarEmpresa }) => {
           Paso 3: datos de tu empresa
         </Typography>
         <Typography variant="body2" sx={{ color: "secondary.main", mt: 1 }}>
-          Validamos el RUT y activamos tu perfil de emprendedor.
+          Validamos el RUT y activamos tu perfil de emprendedor. Los campos con * son obligatorios.
         </Typography>
       </Box>
 
@@ -28,6 +28,8 @@ const CompanyStep = ({ empresa, errores, cambiarEmpresa }) => {
             placeholder="76.543.210-3"
             value={empresa.rut}
             onChange={cambiar}
+            required
+            slotProps={{ htmlInput: { maxLength: 12 } }}
             error={Boolean(errores.rut)}
             helperText={errores.rut ?? (validarRut(empresa.rut) ? "RUT válido" : " ")}
           />
@@ -36,6 +38,7 @@ const CompanyStep = ({ empresa, errores, cambiarEmpresa }) => {
           <LoginField
             label="Nombre de la empresa"
             name="nombre"
+            required
             placeholder="Textiles del Sur SpA"
             value={empresa.nombre}
             onChange={cambiar}
@@ -47,6 +50,7 @@ const CompanyStep = ({ empresa, errores, cambiarEmpresa }) => {
           <LoginField
             label="Número de personas"
             name="personas"
+            required
             type="number"
             placeholder="4"
             value={empresa.personas}
@@ -60,6 +64,7 @@ const CompanyStep = ({ empresa, errores, cambiarEmpresa }) => {
           <LoginField
             label="Teléfono de la empresa"
             name="telefono"
+            required
             placeholder="+56 64 223 4567"
             value={empresa.telefono}
             onChange={cambiar}
@@ -71,6 +76,7 @@ const CompanyStep = ({ empresa, errores, cambiarEmpresa }) => {
           <LoginField
             label="Correo de contacto"
             name="correo"
+            required
             type="email"
             placeholder="contacto@textilesdelsur.cl"
             value={empresa.correo}
