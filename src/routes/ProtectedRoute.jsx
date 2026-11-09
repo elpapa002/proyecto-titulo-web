@@ -5,6 +5,7 @@ const ProtectedRoute = () => {
   const { sesionVigente, salidaManual } = useUser();
   const location = useLocation();
 
+  // sin sesion (o con el token vencido) se manda al login
   if (!sesionVigente()) {
     return <Navigate to="/login" replace state={salidaManual ? null : { desde: location.pathname }} />;
   }

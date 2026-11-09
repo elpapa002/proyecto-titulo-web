@@ -44,7 +44,7 @@ const ClientHomeScreen = () => {
   });
 
   let tituloResultados = "Resultados";
-  if (buscar) tituloResultados = `Resultados para «${buscar}»`;
+  if (buscar) tituloResultados = `Resultados para "${buscar}"`;
   else if (categoria) tituloResultados = categoria.nombre;
   else if (vista === "ofertas") tituloResultados = "Ofertas de la semana";
   else if (vista === "deseos") tituloResultados = "Tu lista de deseos";

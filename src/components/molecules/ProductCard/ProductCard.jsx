@@ -1,4 +1,5 @@
-import { Box, Chip, IconButton, Paper, Rating, Typography } from "@mui/material";
+import { Box, Chip, IconButton, Link, Paper, Rating, Typography } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import FavoriteIcon from "@mui/icons-material/Favorite";
@@ -30,11 +31,18 @@ const ProductCard = ({ producto, favorito = false, onFavorito }) => {
           borderColor: "text.primary",
         }}
       >
-        {producto.tipo === "Servicio" ? (
-          <ScheduleOutlinedIcon sx={{ fontSize: 32 }} />
-        ) : (
-          <ImageOutlinedIcon sx={{ fontSize: 32 }} />
-        )}
+        <Box
+          component={RouterLink}
+          to={`/tienda/producto/${producto.id}`}
+          aria-label={`Ver ${producto.nombre}`}
+          sx={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "text.primary" }}
+        >
+          {producto.tipo === "Servicio" ? (
+            <ScheduleOutlinedIcon sx={{ fontSize: 32 }} />
+          ) : (
+            <ImageOutlinedIcon sx={{ fontSize: 32 }} />
+          )}
+        </Box>
         {descuento > 0 && (
           <Chip
             label={`−${descuento}%`}
@@ -66,7 +74,14 @@ const ProductCard = ({ producto, favorito = false, onFavorito }) => {
 
       <Box sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 0.5, flexGrow: 1 }}>
         <Typography variant="body2">{producto.tienda}</Typography>
-        <Typography sx={{ fontWeight: 600 }}>{producto.nombre}</Typography>
+        <Link
+          component={RouterLink}
+          to={`/tienda/producto/${producto.id}`}
+          underline="hover"
+          sx={{ fontWeight: 600, color: "text.primary", fontSize: 14 }}
+        >
+          {producto.nombre}
+        </Link>
         {producto.resenas > 0 && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
             <Rating

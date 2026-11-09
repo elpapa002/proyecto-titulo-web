@@ -1,4 +1,5 @@
 const CLAVE_SESION = "sesion-compra-venta";
+// el token dura una hora
 const UNA_HORA = 60 * 60 * 1000;
 
 export const leerSesion = () => {
@@ -26,6 +27,7 @@ export const borrarSesion = () => {
 export const guardarSesion = (sesion, recordar) => {
   try {
     borrarSesion();
+    // con "recordar usuario" queda en localStorage, si no se borra al cerrar el navegador
     const almacen = recordar ? localStorage : sessionStorage;
     almacen.setItem(CLAVE_SESION, JSON.stringify(sesion));
     return true;

@@ -10,7 +10,7 @@ import { obtenerUsuarios } from "../../../services/userService";
 import { obtenerCompanias } from "../../../services/companyService";
 import { formatearRut, formatearRutEscritura, limpiarRut, validarRut } from "../../../utils/rut";
 import { calcularEdad, correoValido, errorFechaNacimiento, soloLetras } from "../../../utils/formato";
-import { encriptarClave } from "../../../utils/clave";
+import { ocultarClaves } from "../../../utils/clave";
 
 const datosIniciales = {
   run: "",
@@ -146,7 +146,7 @@ const RegisterForm = ({ paso, setPaso }) => {
       fechaNacimiento: datos.fechaNacimiento,
       edad: calcularEdad(datos.fechaNacimiento),
       esMenorDeEdad: calcularEdad(datos.fechaNacimiento) < 18,
-      clave: await encriptarClave(datos.clave),
+      clave: datos.clave,
       roles,
       telefonos: datos.contactos.map((c) => c.telefono).filter(Boolean),
       correos: datos.contactos.map((c) => c.correo).filter(Boolean),
@@ -157,7 +157,7 @@ const RegisterForm = ({ paso, setPaso }) => {
         ? { ...datos.empresa, rut: formatearRut(datos.empresa.rut), personas: Number(datos.empresa.personas) }
         : null,
     };
-    console.log("Datos de registro de usuario:", datosRegistro);
+    console.log("Datos de registro de usuario:", ocultarClaves(datosRegistro));
 
     const respuesta = await registrarUsuario(datosRegistro);
     setEnviando(false);

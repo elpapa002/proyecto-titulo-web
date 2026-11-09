@@ -1,5 +1,10 @@
-import bcrypt from "bcryptjs";
+const CAMPOS_CLAVE = ["clave", "clave2", "claveActual", "claveNueva"];
 
-const saltRounds = 10;
-
-export const encriptarClave = (clave) => bcrypt.hash(clave, saltRounds);
+// para los console.log, asi no se ven las claves
+export const ocultarClaves = (datos) => {
+  const copia = { ...datos };
+  CAMPOS_CLAVE.forEach((campo) => {
+    if (copia[campo]) copia[campo] = "********";
+  });
+  return copia;
+};

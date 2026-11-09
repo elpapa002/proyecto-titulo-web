@@ -36,9 +36,14 @@ export const registrarUsuario = (datos) =>
       fechaNacimiento: datos.fechaNacimiento,
       fechaIngreso: hoyIso(),
       roles: datos.roles,
-      clave: datos.clave,
       companiaId,
     };
     memoria.usuarios = [usuario, ...memoria.usuarios];
+    datos.direcciones.forEach((direccion) => {
+      memoria.direcciones = [...memoria.direcciones, { ...direccion, id: siguienteId(memoria.direcciones), usuarioId: usuario.id }];
+    });
+    datos.telefonos.forEach((numero) => {
+      memoria.telefonos = [...memoria.telefonos, { id: siguienteId(memoria.telefonos), usuarioId: usuario.id, numero }];
+    });
     return usuario;
   });

@@ -30,7 +30,7 @@ const ProductForm = ({ producto, tipoNuevo, categorias, productos, onGuardar, on
     sku: producto?.sku ?? "",
     stock: producto?.stock ?? "",
     precio: producto?.precio ?? "",
-    precioOferta: producto?.precioOferta ?? "",
+    edadMinima: producto?.edadMinima ?? 0,
     estado: producto?.estado ?? "Publicada",
     textoAlternativo: "",
   });
@@ -83,10 +83,8 @@ const ProductForm = ({ producto, tipoNuevo, categorias, productos, onGuardar, on
     }
     if (!entero(datos.stock)) e.stock = esServicio ? "Ingresa los cupos, solo números." : "Ingresa el stock, solo números.";
     if (!entero(datos.precio) || Number(datos.precio) < 100) e.precio = "Ingresa un precio válido, sin puntos.";
-    if (datos.precioOferta !== "" && datos.precioOferta !== null) {
-      if (!entero(datos.precioOferta)) e.precioOferta = "Solo números, sin puntos.";
-      else if (Number(datos.precioOferta) >= Number(datos.precio)) e.precioOferta = "Debe ser menor que el precio oficial.";
-    }
+    if (esServicio && (!entero(datos.edadMinima) || Number(datos.edadMinima) > 99))
+      e.edadMinima = "Ingresa una edad entre 0 y 99. Usa 0 si no tiene restricción.";
     return e;
   };
 
@@ -113,7 +111,7 @@ const ProductForm = ({ producto, tipoNuevo, categorias, productos, onGuardar, on
       sku: esServicio ? "" : datos.sku,
       stock: Number(datos.stock),
       precio: Number(datos.precio),
-      precioOferta: datos.precioOferta === "" || datos.precioOferta === null ? null : Number(datos.precioOferta),
+      edadMinima: esServicio ? Number(datos.edadMinima) : 0,
       estado: comoBorrador ? "Borrador" : datos.estado,
       fotos: fotos.map((f) => f.archivo.name),
       textoAlternativo: datos.textoAlternativo.trim(),
@@ -126,10 +124,6 @@ const ProductForm = ({ producto, tipoNuevo, categorias, productos, onGuardar, on
   };
 
   const titulo = editando ? "Editar publicación" : esServicio ? "Publicar servicio" : "Publicar producto";
-  const descuento =
-    datos.precioOferta && Number(datos.precio) > Number(datos.precioOferta)
-      ? Math.round((1 - Number(datos.precioOferta) / Number(datos.precio)) * 100)
-      : 0;
   const campo = (name, props) => ({
     name,
     value: datos[name],
@@ -180,7 +174,20 @@ const ProductForm = ({ producto, tipoNuevo, categorias, productos, onGuardar, on
                 />
                 <FormField label="Descripción" multiline minRows={3} required {...campo("descripcion")} />
                 {esServicio ? (
-                  <FormField label="Duración" placeholder="3 horas" required {...campo("duracion")} />
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <FormField label="Duración" placeholder="3 horas" required {...campo("duracion")} />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <FormField
+                        label="Edad mínima"
+                        type="number"
+                        required
+                        slotProps={{ htmlInput: { min: 0, max: 99 } }}
+                        {...campo("edadMinima", { ayuda: "0 si cualquier edad puede tomar el servicio." })}
+                      />
+                    </Grid>
+                  </Grid>
                 ) : (
                   <Grid container spacing={2}>
                     <Grid size={{ xs: 12, sm: 6 }}>
@@ -293,15 +300,7 @@ const ProductForm = ({ producto, tipoNuevo, categorias, productos, onGuardar, on
                   }}
                   {...campo("precio", { ayuda: "IVA incluido, en pesos chilenos." })}
                 />
-                <FormField
-                  label="Precio de oferta (opcional)"
-                  type="number"
-                  slotProps={{
-                    htmlInput: { min: 0 },
-                    input: { startAdornment: <InputAdornment position="start">$</InputAdornment> },
-                  }}
-                  {...campo("precioOferta", { ayuda: descuento ? `Descuento de ${descuento}%` : "Déjalo vacío si no tiene oferta." })}
-                />
+                <Typography variant="body2">Las ofertas por tiempo limitado se crean en la sección Ofertas.</Typography>
                 <SelectField
                   label="Estado"
                   required

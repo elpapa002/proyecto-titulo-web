@@ -1,4 +1,5 @@
-import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
+import { Link, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
 import StatusChip from "../../atoms/StatusChip/StatusChip";
 import { formatearPrecio } from "../../../utils/formato";
 
@@ -8,10 +9,11 @@ const OrderTable = ({ pedidos, cargando }) => {
       <Table sx={{ minWidth: 480 }}>
         <TableHead>
           <TableRow>
-            <TableCell>N.º</TableCell>
+            <TableCell>N°</TableCell>
             <TableCell>Cliente</TableCell>
             <TableCell>Total</TableCell>
             <TableCell>Estado</TableCell>
+            <TableCell align="center">Detalle</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -21,13 +23,18 @@ const OrderTable = ({ pedidos, cargando }) => {
               <TableCell>{pedido.cliente}</TableCell>
               <TableCell>{formatearPrecio(pedido.total)}</TableCell>
               <TableCell>
-                <StatusChip texto={pedido.estado} relleno={pedido.estado === "En preparación"} />
+                <StatusChip texto={pedido.estadoPedido} relleno={pedido.estadoPedido === "En preparación"} />
+              </TableCell>
+              <TableCell align="center">
+                <Link component={RouterLink} to={`/mi-tienda/ventas/${pedido.id}`} sx={{ color: "text.primary", fontWeight: 600 }}>
+                  Ver
+                </Link>
               </TableCell>
             </TableRow>
           ))}
           {pedidos.length === 0 && (
             <TableRow>
-              <TableCell colSpan={4} align="center" sx={{ py: 4, borderBottom: 0 }}>
+              <TableCell colSpan={5} align="center" sx={{ py: 4, borderBottom: 0 }}>
                 {cargando ? "Cargando pedidos..." : "Todavía no tienes pedidos."}
               </TableCell>
             </TableRow>

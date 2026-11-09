@@ -3,7 +3,11 @@ import { Badge, Box, Button, ButtonBase, InputAdornment, TextField, Typography }
 import { useNavigate, useSearchParams } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
-import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
+import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
+import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import Logo from "../../atoms/Logo/Logo";
@@ -23,7 +27,7 @@ const IconoBarra = ({ icono, texto, cantidad = 0, onClick }) => (
   </ButtonBase>
 );
 
-const ClientHeader = ({ cantidadDeseos }) => {
+const ClientHeader = ({ cantidadDeseos, cantidadCarro, avisosSinLeer }) => {
   const { usuario } = useUser();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -34,6 +38,15 @@ const ClientHeader = ({ cantidadDeseos }) => {
     const limpio = texto.trim();
     navigate(limpio ? `/tienda?buscar=${encodeURIComponent(limpio)}` : "/tienda");
   };
+
+  const iconos = [
+    { texto: "Compras", ruta: "/tienda/compras", icono: <Inventory2OutlinedIcon fontSize="small" /> },
+    { texto: "Cotizaciones", ruta: "/tienda/cotizaciones", icono: <RequestQuoteOutlinedIcon fontSize="small" /> },
+    { texto: "Deseos", ruta: "/tienda/deseos", icono: <FavoriteBorderIcon fontSize="small" />, cantidad: cantidadDeseos },
+    { texto: "Mensajes", ruta: "/tienda/mensajes", icono: <ChatBubbleOutlineIcon fontSize="small" /> },
+    { texto: "Avisos", ruta: "/tienda/avisos", icono: <NotificationsNoneOutlinedIcon fontSize="small" />, cantidad: avisosSinLeer },
+    { texto: "Carro", ruta: "/tienda/carro", icono: <ShoppingCartOutlinedIcon fontSize="small" />, cantidad: cantidadCarro },
+  ];
 
   const esVendedor = usuario?.roles.includes("Vendedor");
   const esAdmin = usuario?.roles.includes("Admin");
@@ -67,7 +80,7 @@ const ClientHeader = ({ cantidadDeseos }) => {
         component="form"
         role="search"
         onSubmit={buscar}
-        sx={{ order: { xs: 3, md: 0 }, flexBasis: { xs: "100%", md: "auto" }, flexGrow: 1, maxWidth: { md: 460 } }}
+        sx={{ order: { xs: 3, md: 0 }, flexBasis: { xs: "100%", md: "auto" }, flexGrow: 1, maxWidth: { md: 420 } }}
       >
         <TextField
           fullWidth
@@ -96,23 +109,17 @@ const ClientHeader = ({ cantidadDeseos }) => {
       </Box>
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, ml: "auto" }}>
-        <IconoBarra
-          icono={<LocalOfferOutlinedIcon fontSize="small" />}
-          texto="Ofertas"
-          onClick={() => navigate("/tienda?vista=ofertas")}
-        />
-        <IconoBarra
-          icono={<FavoriteBorderIcon fontSize="small" />}
-          texto="Deseos"
-          cantidad={cantidadDeseos}
-          onClick={() => navigate("/tienda?vista=deseos")}
-        />
+        <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center" }}>
+          {iconos.map((icono) => (
+            <IconoBarra key={icono.texto} {...icono} onClick={() => navigate(icono.ruta)} />
+          ))}
+        </Box>
         {esVendedor && (
           <CustomButton
             tono="contorno"
             startIcon={<StorefrontOutlinedIcon />}
             onClick={() => navigate("/mi-tienda")}
-            sx={{ ml: 1, display: { xs: "none", sm: "inline-flex" } }}
+            sx={{ ml: 1, display: { xs: "none", lg: "inline-flex" } }}
           >
             Mi tienda
           </CustomButton>
@@ -122,7 +129,7 @@ const ClientHeader = ({ cantidadDeseos }) => {
             tono="contorno"
             startIcon={<AdminPanelSettingsOutlinedIcon />}
             onClick={() => navigate("/resumen")}
-            sx={{ ml: 1, display: { xs: "none", sm: "inline-flex" } }}
+            sx={{ ml: 1, display: { xs: "none", lg: "inline-flex" } }}
           >
             Administración
           </CustomButton>

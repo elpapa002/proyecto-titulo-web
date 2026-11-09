@@ -156,7 +156,7 @@ const CompanyFormDialog = ({ compania, companias, onCerrar, onGuardar }) => {
           sx={{ mt: 2 }}
         />
         <Typography variant="body2" sx={{ mt: 2 }}>
-          El emprendedor se asigna desde Gestión de usuarios, en el campo «Compañía».
+          El emprendedor se asigna desde Gestión de usuarios, en el campo "Compañía".
         </Typography>
       </DialogContent>
 

@@ -9,7 +9,7 @@ import Notice from "../../molecules/Notice/Notice";
 import useUser from "../../../contexts/UserContext/useUser";
 import { iniciarSesion as iniciarSesionApi } from "../../../services/authService";
 import { formatearRut, formatearRutEscritura, validarRut } from "../../../utils/rut";
-import { encriptarClave } from "../../../utils/clave";
+import { ocultarClaves } from "../../../utils/clave";
 import { rutaInicio } from "../../../utils/roles";
 
 const LoginForm = ({ runInicial = "" }) => {
@@ -45,16 +45,16 @@ const LoginForm = ({ runInicial = "" }) => {
     setEnviando(true);
     const datosLogin = {
       run: formatearRut(datos.run),
-      clave: await encriptarClave(datos.clave),
+      clave: datos.clave,
       recordarSesion: datos.recordar,
     };
-    console.log("Datos de inicio de sesión:", datosLogin);
+    console.log("Datos de inicio de sesión:", ocultarClaves(datosLogin));
 
     const respuesta = await iniciarSesionApi(datosLogin);
     setEnviando(false);
 
     if (!respuesta.ok) {
-      setAviso("No se pudo iniciar sesión. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudo iniciar sesión. Intenta de nuevo.");
       return;
     }
 
@@ -107,7 +107,7 @@ const LoginForm = ({ runInicial = "" }) => {
       </CustomButton>
 
       <Typography variant="body2" sx={{ color: "secondary.main" }}>
-        Ingresa con tu RUN y tu clave de acceso. Si eres emprendedor, después administras tu tienda desde «Mi tienda».
+        Ingresa con tu RUN y tu clave de acceso. Si eres emprendedor, después administras tu tienda desde "Mi tienda".
       </Typography>
 
       <Notice mensaje={aviso} onClose={() => setAviso("")} />

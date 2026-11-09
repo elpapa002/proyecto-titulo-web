@@ -6,6 +6,15 @@ import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import ApartmentOutlinedIcon from "@mui/icons-material/ApartmentOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
+import PercentOutlinedIcon from "@mui/icons-material/PercentOutlined";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
+import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
+import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
+import AssignmentReturnOutlinedIcon from "@mui/icons-material/AssignmentReturnOutlined";
+import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
+import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import Logo from "../../atoms/Logo/Logo";
 import NavItem from "../../molecules/NavItem/NavItem";
@@ -18,6 +27,21 @@ import { nombreTienda } from "../../../utils/formato";
 const administracion = [
   { ruta: "/usuarios", texto: "Gestión de usuarios", icono: <PeopleAltOutlinedIcon fontSize="small" /> },
   { ruta: "/companias", texto: "Compañías", icono: <ApartmentOutlinedIcon fontSize="small" /> },
+  { ruta: "/categorias", texto: "Categorías", icono: <AccountTreeOutlinedIcon fontSize="small" /> },
+];
+
+const emprendedor = [
+  { ruta: "/mi-tienda", texto: "Resumen", icono: <DashboardOutlinedIcon fontSize="small" />, exacta: true },
+  { ruta: "/mi-tienda/publicaciones", texto: "Publicaciones", icono: <Inventory2OutlinedIcon fontSize="small" /> },
+  { ruta: "/mi-tienda/ofertas", texto: "Ofertas", icono: <PercentOutlinedIcon fontSize="small" /> },
+  { ruta: "/mi-tienda/categorias", texto: "Categorías", icono: <AccountTreeOutlinedIcon fontSize="small" /> },
+  { ruta: "/mi-tienda/ventas", texto: "Ventas y pedidos", icono: <ReceiptLongOutlinedIcon fontSize="small" /> },
+  { ruta: "/mi-tienda/cotizaciones", texto: "Cotizaciones", icono: <RequestQuoteOutlinedIcon fontSize="small" /> },
+  { ruta: "/mi-tienda/preguntas", texto: "Preguntas", icono: <HelpOutlineOutlinedIcon fontSize="small" /> },
+  { ruta: "/mi-tienda/devoluciones", texto: "Devoluciones", icono: <AssignmentReturnOutlinedIcon fontSize="small" /> },
+  { ruta: "/mi-tienda/envios", texto: "Costos de envío", icono: <LocalShippingOutlinedIcon fontSize="small" /> },
+  { ruta: "/mi-tienda/mensajes", texto: "Mensajes", icono: <ChatBubbleOutlineIcon fontSize="small" /> },
+  { ruta: "/mi-tienda/avisos", texto: "Avisos", icono: <NotificationsNoneOutlinedIcon fontSize="small" /> },
 ];
 
 const tituloSeccion = { color: "secondary.main", opacity: 0.7, fontSize: 12, fontWeight: 600, px: 2, mt: 2, mb: 1 };
@@ -76,19 +100,9 @@ const Sidebar = ({ tipo = "admin", onNavegar }) => {
       <Box sx={{ flexGrow: 1, overflowY: "auto" }}>
         {esEmprendedor ? (
           <List disablePadding>
-            <NavItem
-              ruta="/mi-tienda"
-              texto="Resumen"
-              icono={<DashboardOutlinedIcon fontSize="small" />}
-              onClick={onNavegar}
-              exacta
-            />
-            <NavItem
-              ruta="/mi-tienda/publicaciones"
-              texto="Publicaciones"
-              icono={<Inventory2OutlinedIcon fontSize="small" />}
-              onClick={onNavegar}
-            />
+            {emprendedor.map((opcion) => (
+              <NavItem key={opcion.ruta} {...opcion} onClick={onNavegar} />
+            ))}
           </List>
         ) : (
           <>

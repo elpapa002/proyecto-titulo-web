@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Box, Grid, Paper, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
-import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
 import PlaylistAddCheckOutlinedIcon from "@mui/icons-material/PlaylistAddCheckOutlined";
 import StarOutlineIcon from "@mui/icons-material/StarOutlineOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -13,7 +13,11 @@ import OrderTable from "../../components/organisms/OrderTable/OrderTable";
 import StatCard from "../../components/molecules/StatCard/StatCard";
 import CustomButton from "../../components/atoms/Button/CustomButton";
 import useUser from "../../contexts/UserContext/useUser";
-import { obtenerMisPedidos, obtenerMisProductos } from "../../services/productService";
+import { obtenerMisProductos } from "../../services/productService";
+import { obtenerMisVentas } from "../../services/ventaService";
+import { obtenerCotizacionesRecibidas } from "../../services/cotizacionService";
+import { obtenerPreguntasRecibidas } from "../../services/preguntaService";
+import { obtenerDevolucionesRecibidas } from "../../services/devolucionService";
 import { obtenerCompanias } from "../../services/companyService";
 import { formatearPrecio, nombreTienda } from "../../utils/formato";
 
@@ -24,27 +28,40 @@ const StoreSummaryScreen = () => {
   const navigate = useNavigate();
   const [productos, setProductos] = useState([]);
   const [pedidos, setPedidos] = useState([]);
+  const [cotizaciones, setCotizaciones] = useState([]);
+  const [preguntas, setPreguntas] = useState([]);
+  const [devoluciones, setDevoluciones] = useState([]);
   const [companias, setCompanias] = useState([]);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
     const cargar = async () => {
-      const [respuestaProductos, respuestaPedidos, respuestaCompanias] = await Promise.all([
+      const respuestas = await Promise.all([
         obtenerMisProductos(usuario.id),
-        obtenerMisPedidos(usuario.id),
+        obtenerMisVentas(usuario.id),
         obtenerCompanias(),
+        obtenerCotizacionesRecibidas(usuario.id),
+        obtenerPreguntasRecibidas(usuario.id),
+        obtenerDevolucionesRecibidas(usuario.id),
       ]);
-      if (respuestaProductos.ok) setProductos(respuestaProductos.datos);
-      if (respuestaPedidos.ok) setPedidos(respuestaPedidos.datos);
-      if (respuestaCompanias.ok) setCompanias(respuestaCompanias.datos);
+      const [rProductos, rVentas, rCompanias, rCotizaciones, rPreguntas, rDevoluciones] = respuestas;
+      if (rProductos.ok) setProductos(rProductos.datos);
+      if (rVentas.ok) setPedidos(rVentas.datos);
+      if (rCompanias.ok) setCompanias(rCompanias.datos);
+      if (rCotizaciones.ok) setCotizaciones(rCotizaciones.datos);
+      if (rPreguntas.ok) setPreguntas(rPreguntas.datos);
+      if (rDevoluciones.ok) setDevoluciones(rDevoluciones.datos);
       setCargando(false);
     };
     cargar();
   }, [usuario.id]);
 
-  const ventas = pedidos.reduce((suma, p) => suma + p.total, 0);
-  const porPreparar = pedidos.filter((p) => p.estado === "En preparación").length;
-  const activas = productos.filter((p) => p.estado === "Publicada").length;
+  const completadas = pedidos.filter((p) => p.estadoTransaccion === "Completada");
+  const ventas = completadas.reduce((suma, p) => suma + p.total, 0);
+  const porPreparar = pedidos.filter((p) => p.estadoPedido === "Pagado" || p.estadoPedido === "En preparación").length;
+  const cotizacionesPendientes = cotizaciones.filter((c) => c.estado === "Pendiente").length;
+  const preguntasPendientes = preguntas.filter((p) => !p.respuesta).length;
+  const devolucionesPendientes = devoluciones.filter((d) => d.estado === "Pendiente").length;
   const borradores = productos.filter((p) => p.estado === "Borrador").length;
   const totalResenas = productos.reduce((suma, p) => suma + p.resenas, 0);
   const promedio = totalResenas
@@ -55,21 +72,21 @@ const StoreSummaryScreen = () => {
   const tarjetas = [
     {
       icono: <PaymentsOutlinedIcon fontSize="small" />,
-      titulo: "Ventas del mes",
+      titulo: "Ventas completadas",
       valor: formatearPrecio(ventas),
-      detalle: plural(pedidos.length, "pedido", "pedidos"),
+      detalle: plural(completadas.length, "venta", "ventas"),
     },
     {
       icono: <PlaylistAddCheckOutlinedIcon fontSize="small" />,
       titulo: "Pedidos por preparar",
       valor: porPreparar,
-      detalle: porPreparar ? "Revisa la tabla de pedidos" : "Todo al día",
+      detalle: porPreparar ? "Revisa Ventas y pedidos" : "Todo al día",
     },
     {
-      icono: <Inventory2OutlinedIcon fontSize="small" />,
-      titulo: "Publicaciones activas",
-      valor: activas,
-      detalle: `De ${plural(productos.length, "publicación", "publicaciones")}`,
+      icono: <RequestQuoteOutlinedIcon fontSize="small" />,
+      titulo: "Cotizaciones por responder",
+      valor: cotizacionesPendientes,
+      detalle: `De ${plural(cotizaciones.length, "cotización", "cotizaciones")}`,
     },
     {
       icono: <StarOutlineIcon fontSize="small" />,
@@ -86,8 +103,11 @@ const StoreSummaryScreen = () => {
         aviso: true,
         texto: p.stock === 0 ? `Sin stock: ${p.nombre}.` : `Stock bajo: ${p.nombre} (${plural(p.stock, "unidad", "unidades")}).`,
       })),
+    ...(preguntasPendientes ? [{ texto: `Tienes ${plural(preguntasPendientes, "pregunta", "preguntas")} sin responder.` }] : []),
+    ...(devolucionesPendientes
+      ? [{ texto: `Tienes ${plural(devolucionesPendientes, "solicitud", "solicitudes")} de devolución por evaluar.` }]
+      : []),
     ...(borradores ? [{ texto: `Tienes ${plural(borradores, "publicación", "publicaciones")} en borrador.` }] : []),
-    ...(porPreparar ? [{ texto: `Tienes ${plural(porPreparar, "pedido", "pedidos")} por preparar.` }] : []),
   ];
 
   return (

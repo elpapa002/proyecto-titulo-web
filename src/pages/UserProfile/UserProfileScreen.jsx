@@ -7,6 +7,8 @@ import RoleChip from "../../components/atoms/RoleChip/RoleChip";
 import FormField from "../../components/molecules/FormField/FormField";
 import PasswordField from "../../components/molecules/PasswordField/PasswordField";
 import Notice from "../../components/molecules/Notice/Notice";
+import AddressSection from "../../components/organisms/AddressSection/AddressSection";
+import PhoneSection from "../../components/organisms/PhoneSection/PhoneSection";
 import useUser from "../../contexts/UserContext/useUser";
 import { actualizarPerfil, cambiarClave, obtenerUsuarios } from "../../services/userService";
 import { obtenerCompanias } from "../../services/companyService";
@@ -20,7 +22,7 @@ import {
   nombreCompania,
   soloLetras,
 } from "../../utils/formato";
-import { encriptarClave } from "../../utils/clave";
+import { ocultarClaves } from "../../utils/clave";
 
 const tarjeta = { p: 3, borderRadius: 1.5, borderColor: "text.primary" };
 
@@ -97,10 +99,10 @@ const UserProfileScreen = () => {
 
     const datosClave = {
       run: usuario.run,
-      claveActual: await encriptarClave(claves.actual),
-      claveNueva: await encriptarClave(claves.nueva),
+      claveActual: claves.actual,
+      claveNueva: claves.nueva,
     };
-    console.log("Datos para cambiar clave:", datosClave);
+    console.log("Datos para cambiar clave:", ocultarClaves(datosClave));
 
     const respuesta = await cambiarClave(usuario.id, datosClave);
     if (!respuesta.ok) return;
@@ -112,7 +114,10 @@ const UserProfileScreen = () => {
 
   return (
     <>
-      <PageHeader titulo="Mi perfil" subtitulo="Revisa y actualiza tus datos y tu clave de acceso. Los campos con * son obligatorios." />
+      <PageHeader
+        titulo="Mi perfil"
+        subtitulo="Revisa y actualiza tus datos, direcciones, teléfonos y clave de acceso. Los campos con * son obligatorios."
+      />
 
       <Grid container spacing={3} sx={{ alignItems: "flex-start" }}>
         <Grid size={{ xs: 12, md: 4 }}>
@@ -216,6 +221,10 @@ const UserProfileScreen = () => {
                 Guardar cambios
               </CustomButton>
             </Paper>
+
+            <AddressSection usuarioId={usuario.id} onAviso={setAviso} />
+
+            <PhoneSection usuarioId={usuario.id} onAviso={setAviso} />
 
             <Paper variant="outlined" component="form" onSubmit={guardarClave} noValidate sx={tarjeta}>
               <Typography variant="h3" sx={{ mb: 2 }}>

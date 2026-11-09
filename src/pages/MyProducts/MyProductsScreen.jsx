@@ -84,7 +84,7 @@ const MyProductsScreen = () => {
       <DeleteDialog
         open={Boolean(aBorrar)}
         titulo="¿Eliminar publicación?"
-        mensaje={aBorrar ? `Vas a eliminar «${aBorrar.nombre}». Esta acción no se puede deshacer.` : ""}
+        mensaje={aBorrar ? `Vas a eliminar "${aBorrar.nombre}". Esta acción no se puede deshacer.` : ""}
         onCancelar={() => setABorrar(null)}
         onConfirmar={confirmarBorrado}
       />

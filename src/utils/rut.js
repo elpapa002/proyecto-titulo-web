@@ -1,5 +1,6 @@
 export const limpiarRut = (rut) => rut.replace(/[^0-9kK]/g, "").toUpperCase();
 
+// modulo 11: se multiplica de derecha a izquierda por 2,3,4,5,6,7 y se repite
 export const calcularDv = (numero) => {
   let suma = 0;
   let multiplicador = 2;
@@ -29,6 +30,7 @@ export const formatearRut = (rut) => {
   return `${numero}-${limpio.slice(-1)}`;
 };
 
+// se usa mientras el usuario escribe, la K solo puede ir al final
 export const formatearRutEscritura = (valor) => {
   const limpio = limpiarRut(valor).replace(/K(?=.)/g, "").slice(0, 9);
   if (limpio.length < 2) return limpio;
