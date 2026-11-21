@@ -36,7 +36,7 @@ const CompaniesScreen = () => {
     const original = formulario.compania;
     const respuesta = original ? await actualizarCompania(original.id, datos) : await crearCompania(datos);
     if (!respuesta.ok) {
-      setAviso("No se pudo guardar. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudo guardar. Intenta de nuevo.");
       return;
     }
     setAviso(original ? "Compañía actualizada" : "Compañía agregada");
@@ -50,7 +50,7 @@ const CompaniesScreen = () => {
     const respuesta = await eliminarCompania(compania.id);
     setABorrar(null);
     if (!respuesta.ok) {
-      setAviso("No se pudo eliminar. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudo eliminar. Intenta de nuevo.");
       return;
     }
     setAviso("Compañía eliminada");

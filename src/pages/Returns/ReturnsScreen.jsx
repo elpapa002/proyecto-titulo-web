@@ -45,7 +45,7 @@ const ReturnsScreen = () => {
   const guardarDecision = async (datos) => {
     const respuesta = await resolverDevolucion(aEvaluar.id, datos);
     if (!respuesta.ok) {
-      setAviso("No se pudo guardar la decisión. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudo guardar la decisión. Intenta de nuevo.");
       return;
     }
     setAviso(datos.estado === "Aprobada" ? "Devolución aprobada" : "Devolución rechazada");

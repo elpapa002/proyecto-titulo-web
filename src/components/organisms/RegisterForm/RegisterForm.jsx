@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Box, Stack } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import CustomButton from "../../atoms/Button/CustomButton";
+import Notice from "../../molecules/Notice/Notice";
 import PersonalStep from "../PersonalStep/PersonalStep";
 import ContactStep from "../ContactStep/ContactStep";
 import CompanyStep from "../CompanyStep/CompanyStep";
@@ -39,6 +40,7 @@ const datosIniciales = {
 const RegisterForm = ({ paso, setPaso }) => {
   const [datos, setDatos] = useState(datosIniciales);
   const [errores, setErrores] = useState({});
+  const [aviso, setAviso] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [usuarios, setUsuarios] = useState([]);
   const [companias, setCompanias] = useState([]);
@@ -161,7 +163,10 @@ const RegisterForm = ({ paso, setPaso }) => {
 
     const respuesta = await registrarUsuario(datosRegistro);
     setEnviando(false);
-    if (!respuesta.ok) return;
+    if (!respuesta.ok) {
+      setAviso(respuesta.error);
+      return;
+    }
 
     navigate("/login", { state: { mensaje: "Cuenta creada. Ahora inicia sesión con tu RUN y tu clave." } });
   };
@@ -228,6 +233,8 @@ const RegisterForm = ({ paso, setPaso }) => {
           </CustomButton>
         )}
       </Box>
+
+      <Notice mensaje={aviso} onClose={() => setAviso("")} />
     </Stack>
   );
 };

@@ -6,6 +6,7 @@ import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
 import StarOutlineIcon from "@mui/icons-material/StarOutlineOutlined";
 import UndoIcon from "@mui/icons-material/Undo";
+import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import PageHeader from "../../components/organisms/PageHeader/PageHeader";
 import OrderTracking from "../../components/organisms/OrderTracking/OrderTracking";
 import RatingDialog from "../../components/organisms/RatingDialog/RatingDialog";
@@ -19,6 +20,7 @@ import { obtenerVenta } from "../../services/ventaService";
 import { crearCalificacion } from "../../services/calificacionService";
 import { crearDevolucion, obtenerMisDevoluciones } from "../../services/devolucionService";
 import { formatearFecha, formatearPrecio } from "../../utils/formato";
+import { descargarBoleta } from "../../utils/pdf";
 
 const tarjeta = { p: 2.5, borderRadius: 1.5, borderColor: "text.primary" };
 
@@ -253,6 +255,14 @@ const PurchaseDetailScreen = () => {
                 onClick={() => navigate("/tienda/mensajes", { state: { vendedorId: venta.vendedorId } })}
               >
                 Contactar al vendedor
+              </CustomButton>
+              <CustomButton
+                tono="contorno"
+                fullWidth
+                startIcon={<PictureAsPdfOutlinedIcon />}
+                onClick={() => descargarBoleta(venta, usuario)}
+              >
+                Descargar boleta en PDF
               </CustomButton>
               {nota && <InfoHint texto={nota} />}
             </Stack>

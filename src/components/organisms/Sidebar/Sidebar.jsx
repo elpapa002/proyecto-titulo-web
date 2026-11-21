@@ -13,6 +13,7 @@ import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
 import AssignmentReturnOutlinedIcon from "@mui/icons-material/AssignmentReturnOutlined";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
+import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
@@ -40,6 +41,7 @@ const emprendedor = [
   { ruta: "/mi-tienda/preguntas", texto: "Preguntas", icono: <HelpOutlineOutlinedIcon fontSize="small" /> },
   { ruta: "/mi-tienda/devoluciones", texto: "Devoluciones", icono: <AssignmentReturnOutlinedIcon fontSize="small" /> },
   { ruta: "/mi-tienda/envios", texto: "Costos de envío", icono: <LocalShippingOutlinedIcon fontSize="small" /> },
+  { ruta: "/mi-tienda/reportes", texto: "Reportes", icono: <BarChartOutlinedIcon fontSize="small" /> },
   { ruta: "/mi-tienda/mensajes", texto: "Mensajes", icono: <ChatBubbleOutlineIcon fontSize="small" /> },
   { ruta: "/mi-tienda/avisos", texto: "Avisos", icono: <NotificationsNoneOutlinedIcon fontSize="small" /> },
 ];

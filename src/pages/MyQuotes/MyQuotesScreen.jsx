@@ -61,7 +61,7 @@ const MyQuotesScreen = () => {
     const respuesta = await cambiarEstadoCotizacion(cotizacion.id, estado);
     setDecision(null);
     if (!respuesta.ok) {
-      setAviso("No se pudo actualizar la cotización. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudo actualizar la cotización. Intenta de nuevo.");
       return;
     }
     setAviso(estado === "Aceptada" ? "Cotización aceptada" : "Cotización rechazada");
@@ -74,7 +74,7 @@ const MyQuotesScreen = () => {
     const respuesta = await eliminarCotizacion(cotizacion.id);
     setACancelar(null);
     if (!respuesta.ok) {
-      setAviso("No se pudo cancelar la cotización. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudo cancelar la cotización. Intenta de nuevo.");
       return;
     }
     setAviso("Cotización cancelada");

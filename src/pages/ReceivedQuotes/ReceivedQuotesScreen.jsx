@@ -51,7 +51,7 @@ const ReceivedQuotesScreen = () => {
   const guardarRespuesta = async (datos) => {
     const respuesta = await responderCotizacion(aResponder.id, datos);
     if (!respuesta.ok) {
-      setAviso("No se pudo enviar la respuesta. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudo enviar la respuesta. Intenta de nuevo.");
       return;
     }
     setAviso("Cotización respondida");

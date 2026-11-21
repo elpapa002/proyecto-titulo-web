@@ -45,7 +45,7 @@ const MyProductsScreen = () => {
     const respuesta = await eliminarProducto(producto.id);
     setABorrar(null);
     if (!respuesta.ok) {
-      setAviso("No se pudo eliminar. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudo eliminar. Intenta de nuevo.");
       return;
     }
     setAviso("Publicación eliminada");

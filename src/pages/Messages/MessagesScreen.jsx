@@ -77,7 +77,7 @@ const MessagesScreen = () => {
     console.log("Datos para enviar mensaje:", datos);
     const respuesta = await enviarMensaje(datos);
     if (!respuesta.ok) {
-      setAviso("No se pudo enviar el mensaje. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudo enviar el mensaje. Intenta de nuevo.");
       return false;
     }
     setAviso("Mensaje enviado");

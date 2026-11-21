@@ -36,7 +36,7 @@ const QuestionsScreen = () => {
   const responder = async (pregunta, texto) => {
     const respuesta = await responderPregunta(pregunta.id, texto);
     if (!respuesta.ok) {
-      setAviso("No se pudo publicar la respuesta. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudo publicar la respuesta. Intenta de nuevo.");
       return;
     }
     setAviso("Respuesta publicada");
@@ -49,7 +49,7 @@ const QuestionsScreen = () => {
     const respuesta = await eliminarPregunta(pregunta.id);
     setABorrar(null);
     if (!respuesta.ok) {
-      setAviso("No se pudo eliminar. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudo eliminar. Intenta de nuevo.");
       return;
     }
     setAviso("Pregunta eliminada");

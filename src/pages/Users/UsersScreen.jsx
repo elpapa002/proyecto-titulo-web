@@ -3,9 +3,10 @@ import PageHeader from "../../components/organisms/PageHeader/PageHeader";
 import UserTable from "../../components/organisms/UserTable/UserTable";
 import UserFormDialog from "../../components/organisms/UserFormDialog/UserFormDialog";
 import DeleteDialog from "../../components/organisms/DeleteDialog/DeleteDialog";
+import ConfirmDialog from "../../components/organisms/ConfirmDialog/ConfirmDialog";
 import Notice from "../../components/molecules/Notice/Notice";
 import useUser from "../../contexts/UserContext/useUser";
-import { actualizarUsuario, crearUsuario, eliminarUsuario, obtenerUsuarios } from "../../services/userService";
+import { actualizarUsuario, crearUsuario, eliminarUsuario, obtenerUsuarios, restablecerClave } from "../../services/userService";
 import { obtenerCompanias } from "../../services/companyService";
 import { nombreCorto } from "../../utils/formato";
 
@@ -17,6 +18,7 @@ const UsersScreen = () => {
   const [recargas, setRecargas] = useState(0);
   const [formulario, setFormulario] = useState(null);
   const [aBorrar, setABorrar] = useState(null);
+  const [aRestablecer, setARestablecer] = useState(null);
   const [aviso, setAviso] = useState("");
 
   useEffect(() => {
@@ -34,7 +36,7 @@ const UsersScreen = () => {
     const original = formulario.usuario;
     const respuesta = original ? await actualizarUsuario(original.id, datos) : await crearUsuario(datos);
     if (!respuesta.ok) {
-      setAviso("No se pudo guardar. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudo guardar. Intenta de nuevo.");
       return;
     }
 
@@ -58,11 +60,23 @@ const UsersScreen = () => {
     const respuesta = await eliminarUsuario(usuario.id);
     setABorrar(null);
     if (!respuesta.ok) {
-      setAviso("No se pudo eliminar. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudo eliminar. Intenta de nuevo.");
       return;
     }
     setAviso("Usuario eliminado");
     setRecargas((n) => n + 1);
+  };
+
+  const confirmarRestablecer = async () => {
+    const usuario = aRestablecer;
+    console.log("Clave restablecida:", { id: usuario.id, run: usuario.run });
+    const respuesta = await restablecerClave(usuario.id);
+    setARestablecer(null);
+    if (!respuesta.ok) {
+      setAviso(respuesta.error ?? "No se pudo restablecer la clave. Intenta de nuevo.");
+      return;
+    }
+    setAviso(`La clave temporal de ${nombreCorto(usuario)} es su RUN sin puntos ni guion`);
   };
 
   return (
@@ -76,6 +90,7 @@ const UsersScreen = () => {
         onAgregar={() => setFormulario({ usuario: null })}
         onEditar={(usuario) => setFormulario({ usuario })}
         onEliminar={pedirBorrado}
+        onRestablecer={setARestablecer}
       />
 
       {formulario && (
@@ -98,6 +113,19 @@ const UsersScreen = () => {
         }
         onCancelar={() => setABorrar(null)}
         onConfirmar={confirmarBorrado}
+      />
+
+      <ConfirmDialog
+        open={Boolean(aRestablecer)}
+        titulo="¿Restablecer la clave?"
+        mensaje={
+          aRestablecer
+            ? `La clave de ${nombreCorto(aRestablecer)} pasará a ser su RUN sin puntos ni guion. Después la puede cambiar en Mi perfil.`
+            : ""
+        }
+        textoConfirmar="Restablecer"
+        onCancelar={() => setARestablecer(null)}
+        onConfirmar={confirmarRestablecer}
       />
 
       <Notice mensaje={aviso} onClose={() => setAviso("")} />

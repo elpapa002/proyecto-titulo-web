@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using CompraVenta.Api.Utilidades;
 
 namespace CompraVenta.Api.DTOs
 {
@@ -9,7 +10,7 @@ namespace CompraVenta.Api.DTOs
         public string Run { get; set; }
 
         [Required(ErrorMessage = "La clave es obligatoria.")]
-        [StringLength(72, ErrorMessage = "La clave no puede tener más de 72 caracteres.")]
+        [RegularExpression(Claves.FormatoCifrado, ErrorMessage = Claves.MensajeSinCifrar)]
         public string Clave { get; set; }
 
         public bool RecordarSesion { get; set; }

@@ -50,7 +50,7 @@ const SaleDetailScreen = () => {
   const guardarPedido = async (datos) => {
     const respuesta = await actualizarPedido(venta.id, datos);
     if (!respuesta.ok) {
-      setAviso("No se pudo actualizar el pedido. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudo actualizar el pedido. Intenta de nuevo.");
       return;
     }
     setAviso("Pedido actualizado");

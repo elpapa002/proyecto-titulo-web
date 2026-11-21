@@ -1,6 +1,9 @@
 import { Box, Divider, Link, Paper, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
+import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import StatusChip from "../../atoms/StatusChip/StatusChip";
+import CustomButton from "../../atoms/Button/CustomButton";
+import { descargarBoleta } from "../../../utils/pdf";
 import { formatearFecha, formatearPrecio } from "../../../utils/formato";
 
 const Fila = ({ texto, valor, destacada = false }) => (
@@ -55,6 +58,15 @@ const PurchaseReceipt = ({ venta, cliente }) => {
       <Fila texto="IVA (19%)" valor={formatearPrecio(iva)} />
       <Fila texto="Total" valor={formatearPrecio(venta.total)} destacada />
       <Fila texto="Medio de pago" valor={`${tipo} · ${marca} •••• ${ultimos4}`} />
+      <CustomButton
+        tono="contorno"
+        fullWidth
+        startIcon={<PictureAsPdfOutlinedIcon />}
+        onClick={() => descargarBoleta(venta, cliente)}
+        sx={{ mt: 2 }}
+      >
+        Descargar boleta en PDF
+      </CustomButton>
     </Paper>
   );
 };

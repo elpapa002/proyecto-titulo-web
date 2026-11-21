@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Box, Chip, Grid, IconButton, Pagination, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
+import LockResetOutlinedIcon from "@mui/icons-material/LockResetOutlined";
 import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
 import CustomButton from "../../atoms/Button/CustomButton";
 import RoleChip from "../../atoms/RoleChip/RoleChip";
@@ -13,7 +14,7 @@ import { limpiarRut } from "../../../utils/rut";
 const POR_PAGINA = 6;
 const ROLES = ["Cliente", "Vendedor", "Admin"];
 
-const UserTable = ({ usuarios, companias, cargando, onAgregar, onEditar, onEliminar }) => {
+const UserTable = ({ usuarios, companias, cargando, onAgregar, onEditar, onEliminar, onRestablecer }) => {
   const [busqueda, setBusqueda] = useState("");
   const [rol, setRol] = useState("todos");
   const [anio, setAnio] = useState("todas");
@@ -113,6 +114,11 @@ const UserTable = ({ usuarios, companias, cargando, onAgregar, onEditar, onElimi
                   <Tooltip title="Editar">
                     <IconButton size="small" onClick={() => onEditar(u)} aria-label={`Editar a ${nombreCorto(u)}`}>
                       <EditOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Restablecer clave">
+                    <IconButton size="small" onClick={() => onRestablecer(u)} aria-label={`Restablecer la clave de ${nombreCorto(u)}`}>
+                      <LockResetOutlinedIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Eliminar">

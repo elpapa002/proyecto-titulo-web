@@ -95,7 +95,7 @@ const ShippingCostsScreen = () => {
     const respuesta = await eliminarCostoEnvio(costo.id);
     setABorrar(null);
     if (!respuesta.ok) {
-      setAviso("No se pudo eliminar. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudo eliminar. Intenta de nuevo.");
       return;
     }
     console.log("Costo de envío eliminado:", { id: costo.id, comuna: costo.comuna });

@@ -40,7 +40,7 @@ const ProductFormScreen = () => {
       ? await actualizarProducto(producto.id, datos)
       : await crearProducto({ ...datos, vendedorId: usuario.id });
     if (!respuesta.ok) {
-      setAviso("No se pudo guardar. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudo guardar. Intenta de nuevo.");
       return;
     }
     const texto = producto ? "Publicación actualizada" : datos.estado === "Borrador" ? "Borrador guardado" : "Publicación creada";

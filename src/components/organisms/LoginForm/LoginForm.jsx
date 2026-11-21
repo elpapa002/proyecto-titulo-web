@@ -95,7 +95,7 @@ const LoginForm = ({ runInicial = "" }) => {
         <Link
           component="button"
           type="button"
-          onClick={() => setAviso("La recuperación de contraseña se activa cuando esté listo el backend.")}
+          onClick={() => setAviso("Pídele al administrador que restablezca tu clave. Quedará como tu RUN sin puntos ni guion.")}
           sx={{ color: "secondary.main", fontSize: 14, textDecorationColor: "inherit" }}
         >
           ¿Olvidaste tu contraseña?

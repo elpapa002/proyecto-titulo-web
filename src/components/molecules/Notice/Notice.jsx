@@ -4,7 +4,7 @@ const Notice = ({ mensaje, onClose }) => {
   return (
     <Snackbar
       open={Boolean(mensaje)}
-      autoHideDuration={3000}
+      autoHideDuration={4500}
       onClose={onClose}
       anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
     >

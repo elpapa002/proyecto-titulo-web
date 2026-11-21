@@ -1,6 +1,7 @@
 import { llamarApi, siguienteId } from "./api";
 import { memoria } from "./datosPrueba";
 import { hoyIso } from "../utils/formato";
+import { cifrarClave } from "../utils/clave";
 
 export const obtenerUsuarios = () => llamarApi("/usuarios", "GET", null, () => [...memoria.usuarios]);
 
@@ -25,4 +26,12 @@ export const eliminarUsuario = (id) =>
 
 export const actualizarPerfil = (id, datos) => actualizarUsuario(id, datos);
 
-export const cambiarClave = (id, datos) => llamarApi(`/usuarios/${id}/clave`, "PUT", datos, () => ({ id }));
+export const restablecerClave = (id) => llamarApi(`/usuarios/${id}/clave/restablecer`, "PUT", null, () => ({ id }));
+
+export const cambiarClave = async (id, datos) => {
+  const claves = {
+    claveActual: await cifrarClave(datos.run, datos.claveActual),
+    claveNueva: await cifrarClave(datos.run, datos.claveNueva),
+  };
+  return llamarApi(`/usuarios/${id}/clave`, "PUT", { ...datos, ...claves }, () => ({ id }));
+};

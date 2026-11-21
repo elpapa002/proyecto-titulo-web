@@ -37,13 +37,15 @@ namespace CompraVenta.Api.Controllers
             if (vendedor is null) return NotFound(RespuestaApi.Error("El vendedor no existe."));
             if (!vendedor.EsVendedor) return Conflict(RespuestaApi.Error("El usuario no tiene el rol Vendedor."));
 
+            var inicioValido = Validaciones.LeerFecha(datos.Inicio, out var inicio);
+            var finValido = Validaciones.LeerFecha(datos.Fin, out var fin);
+            var fechasPasadas = new List<string>();
+            if (inicioValido && inicio < Validaciones.Hoy()) fechasPasadas.Add("La oferta no puede comenzar en una fecha pasada.");
+            if (finValido && fin < Validaciones.Hoy()) fechasPasadas.Add("La oferta no puede terminar en una fecha pasada.");
+            if (fechasPasadas.Count > 0) return BadRequest(RespuestaApi.Error("Datos inválidos.", fechasPasadas));
+
             var problema = await ValidarOferta(datos, 0, datos.VendedorId, true);
             if (problema != null) return problema;
-
-            Validaciones.LeerFecha(datos.Inicio, out var inicio);
-            Validaciones.LeerFecha(datos.Fin, out var fin);
-            if (fin < Validaciones.Hoy())
-                return BadRequest(RespuestaApi.Error("Datos inválidos.", new List<string> { "La oferta no puede terminar en una fecha pasada." }));
 
             var producto = await _context.Productos.FindAsync(datos.ProductoId);
             var oferta = new Oferta
@@ -87,6 +89,12 @@ namespace CompraVenta.Api.Controllers
             Validaciones.LeerFecha(datos.Inicio, out var inicio);
             Validaciones.LeerFecha(datos.Fin, out var fin);
             var cambiaronFechas = inicio != oferta.Inicio || fin != oferta.Fin;
+
+            // si se mueven las fechas, la nueva no puede quedar en el pasado
+            if (inicio != oferta.Inicio && inicio != default && inicio < Validaciones.Hoy())
+                return BadRequest(RespuestaApi.Error("Datos inválidos.", new List<string> { "La oferta no puede comenzar en una fecha pasada." }));
+            if (fin != oferta.Fin && fin != default && fin < Validaciones.Hoy())
+                return BadRequest(RespuestaApi.Error("Datos inválidos.", new List<string> { "La oferta no puede terminar en una fecha pasada." }));
 
             var problema = await ValidarOferta(datos, id, oferta.VendedorId, cambiaronFechas);
             if (problema != null) return problema;

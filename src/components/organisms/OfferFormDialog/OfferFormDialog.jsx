@@ -66,12 +66,15 @@ const OfferFormDialog = ({ oferta, productos, onCerrar, onGuardar }) => {
 
     if (!datos.inicio) e.inicio = "Ingresa la fecha de inicio.";
     else if (!fechaValida(datos.inicio)) e.inicio = "Fecha no válida.";
+    else if ((!editando || datos.inicio !== oferta.inicio) && datos.inicio < hoyIso())
+      e.inicio = "La fecha de inicio no puede estar en el pasado.";
 
     if (!datos.fin) e.fin = "Ingresa la fecha de término.";
     else if (!fechaValida(datos.fin)) e.fin = "Fecha no válida.";
     else if (fechaValida(datos.inicio) && datos.fin < datos.inicio)
       e.fin = "No puede ser anterior a la fecha de inicio.";
-    else if (!editando && datos.fin < hoyIso()) e.fin = "La fecha de término no puede estar en el pasado.";
+    else if ((!editando || datos.fin !== oferta.fin) && datos.fin < hoyIso())
+      e.fin = "La fecha de término no puede estar en el pasado.";
     else if (fechaValida(datos.inicio) && cambiaronFechas && duracion > MAXIMO_DIAS)
       e.fin = `La oferta puede durar como máximo ${MAXIMO_DIAS} días (ahora son ${duracion}).`;
     return e;
@@ -181,6 +184,7 @@ const OfferFormDialog = ({ oferta, productos, onCerrar, onGuardar }) => {
               type="date"
               value={datos.inicio}
               onChange={cambiar}
+              slotProps={{ htmlInput: { min: editando ? undefined : hoyIso() } }}
               error={Boolean(errores.inicio)}
               helperText={errores.inicio ?? "Desde las 00:00 de ese día"}
             />

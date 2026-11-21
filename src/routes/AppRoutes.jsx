@@ -31,6 +31,7 @@ import ReceivedQuotesScreen from "../pages/ReceivedQuotes/ReceivedQuotesScreen";
 import QuestionsScreen from "../pages/Questions/QuestionsScreen";
 import ReturnsScreen from "../pages/Returns/ReturnsScreen";
 import ShippingCostsScreen from "../pages/ShippingCosts/ShippingCostsScreen";
+import ReportsScreen from "../pages/Reports/ReportsScreen";
 import useUser from "../contexts/UserContext/useUser";
 import { rutaInicio } from "../utils/roles";
 
@@ -68,6 +69,7 @@ const AppRoutes = () => {
             <Route path="/mi-tienda/preguntas" element={<QuestionsScreen />} />
             <Route path="/mi-tienda/devoluciones" element={<ReturnsScreen />} />
             <Route path="/mi-tienda/envios" element={<ShippingCostsScreen />} />
+            <Route path="/mi-tienda/reportes" element={<ReportsScreen />} />
             <Route path="/mi-tienda/mensajes" element={<MessagesScreen />} />
             <Route path="/mi-tienda/avisos" element={<NotificationsScreen />} />
             <Route path="/mi-tienda/perfil" element={<UserProfileScreen />} />

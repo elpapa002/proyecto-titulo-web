@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using CompraVenta.Api.Utilidades;
 
 namespace CompraVenta.Api.DTOs
 {
@@ -22,7 +23,7 @@ namespace CompraVenta.Api.DTOs
         public string FechaNacimiento { get; set; }
 
         [Required(ErrorMessage = "La clave es obligatoria.")]
-        [StringLength(72, MinimumLength = 8, ErrorMessage = "La clave debe tener entre 8 y 72 caracteres.")]
+        [RegularExpression(Claves.FormatoCifrado, ErrorMessage = Claves.MensajeSinCifrar)]
         public string Clave { get; set; }
 
         [Required(ErrorMessage = "Debe elegir al menos un rol.")]

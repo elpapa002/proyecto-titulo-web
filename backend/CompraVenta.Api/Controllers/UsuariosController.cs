@@ -114,7 +114,7 @@ namespace CompraVenta.Api.Controllers
                 Correo = correo,
                 FechaNacimiento = nacimiento,
                 FechaIngreso = Validaciones.Hoy(),
-                // la clave se guarda solo como hash (bcrypt, 10 rondas)
+                // llega cifrada desde el frontend y aca se guarda con bcrypt (10 rondas)
                 ClaveHash = BCrypt.Net.BCrypt.HashPassword(datos.Clave, 10),
                 EsCliente = datos.Roles.Contains("Cliente"),
                 EsVendedor = datos.Roles.Contains("Vendedor"),
@@ -177,7 +177,8 @@ namespace CompraVenta.Api.Controllers
                 Correo = correo,
                 FechaNacimiento = null,
                 FechaIngreso = Validaciones.Hoy(),
-                ClaveHash = BCrypt.Net.BCrypt.HashPassword(Rut.Limpiar(run), 10),
+                // clave temporal: el RUN sin puntos ni guion, cifrado igual que en el frontend
+                ClaveHash = BCrypt.Net.BCrypt.HashPassword(Claves.CifrarComoFrontend(run, Rut.Limpiar(run)), 10),
                 EsCliente = datos.Roles.Contains("Cliente"),
                 EsVendedor = esVendedor,
                 EsAdmin = datos.Roles.Contains("Admin"),
@@ -295,6 +296,18 @@ namespace CompraVenta.Api.Controllers
             usuario.ClaveHash = BCrypt.Net.BCrypt.HashPassword(datos.ClaveNueva, 10);
             await _context.SaveChangesAsync();
             return Ok(RespuestaApi.Exito("Clave actualizada.", Mapeo.DeUsuario(usuario)));
+        }
+
+        // el administrador deja la clave temporal (RUN sin puntos ni guion) cuando alguien la olvida
+        [HttpPut("{id}/clave/restablecer")]
+        public async Task<IActionResult> RestablecerClave(int id)
+        {
+            var usuario = await _context.Usuarios.FindAsync(id);
+            if (usuario is null) return NotFound(RespuestaApi.Error("Usuario no encontrado."));
+
+            usuario.ClaveHash = BCrypt.Net.BCrypt.HashPassword(Claves.CifrarComoFrontend(usuario.Run, Rut.Limpiar(usuario.Run)), 10);
+            await _context.SaveChangesAsync();
+            return Ok(RespuestaApi.Exito("Clave restablecida. La clave temporal es el RUN sin puntos ni guion.", Mapeo.DeUsuario(usuario)));
         }
     }
 }

@@ -83,7 +83,10 @@ const UserProfileScreen = () => {
     console.log("Datos para actualizar perfil:", { run: usuario.run, ...datosPerfil });
 
     const respuesta = await actualizarPerfil(usuario.id, datosPerfil);
-    if (!respuesta.ok) return;
+    if (!respuesta.ok) {
+      setAviso(respuesta.error);
+      return;
+    }
     actualizarUsuarioSesion(datosPerfil);
     setAviso("Tus datos se guardaron");
   };
@@ -93,6 +96,7 @@ const UserProfileScreen = () => {
     const e = {};
     if (!claves.actual) e.actual = "Ingresa tu clave actual.";
     if (claves.nueva.length < 8) e.nueva = "La clave nueva debe tener al menos 8 caracteres.";
+    else if (claves.nueva === claves.actual) e.nueva = "La clave nueva debe ser distinta de la actual.";
     if (claves.repetida !== claves.nueva) e.repetida = "Las claves no coinciden.";
     setErrores(e);
     if (Object.keys(e).length > 0) return;
@@ -105,7 +109,10 @@ const UserProfileScreen = () => {
     console.log("Datos para cambiar clave:", ocultarClaves(datosClave));
 
     const respuesta = await cambiarClave(usuario.id, datosClave);
-    if (!respuesta.ok) return;
+    if (!respuesta.ok) {
+      setErrores({ actual: respuesta.error });
+      return;
+    }
     setClaves({ actual: "", nueva: "", repetida: "" });
     setAviso("Tu clave se cambió");
   };

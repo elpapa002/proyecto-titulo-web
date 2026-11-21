@@ -2,9 +2,10 @@ import { llamarApi, siguienteId } from "./api";
 import { memoria } from "./datosPrueba";
 import { limpiarRut } from "../utils/rut";
 import { hoyIso } from "../utils/formato";
+import { cifrarClave } from "../utils/clave";
 
-export const iniciarSesion = (datos) =>
-  llamarApi("/login", "POST", datos, () => {
+export const iniciarSesion = async (datos) =>
+  llamarApi("/login", "POST", { ...datos, clave: await cifrarClave(datos.run, datos.clave) }, () => {
     const registrado = memoria.usuarios.find((u) => limpiarRut(u.run) === limpiarRut(datos.run));
     const usuario = registrado ?? {
       id: 0,
@@ -19,8 +20,8 @@ export const iniciarSesion = (datos) =>
     return { usuario, token };
   });
 
-export const registrarUsuario = (datos) =>
-  llamarApi("/usuarios/registro", "POST", datos, () => {
+export const registrarUsuario = async (datos) =>
+  llamarApi("/usuarios/registro", "POST", { ...datos, clave: await cifrarClave(datos.run, datos.clave) }, () => {
     let companiaId = null;
     if (datos.empresa) {
       const compania = { ...datos.empresa, id: siguienteId(memoria.companias) };

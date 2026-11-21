@@ -25,10 +25,12 @@ namespace CompraVenta.Api.Controllers
             if (usuario is null || !BCrypt.Net.BCrypt.Verify(datos.Clave, usuario.ClaveHash))
                 return Unauthorized(RespuestaApi.Error("RUN o clave incorrectos."));
 
+            var usuarioDto = Mapeo.DeUsuario(usuario);
             var respuesta = new LoginRespuestaDto
             {
-                Usuario = Mapeo.DeUsuario(usuario),
-                Token = Guid.NewGuid().ToString()
+                Usuario = usuarioDto,
+                // token firmado: el backend lo revisa en cada llamada a /api (ver Program.cs)
+                Token = Tokens.Crear(usuario.Id, usuarioDto.Roles)
             };
             return Ok(RespuestaApi.Exito("Sesión iniciada.", respuesta));
         }

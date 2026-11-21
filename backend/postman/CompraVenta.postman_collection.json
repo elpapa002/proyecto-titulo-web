@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "bd18da14-d1da-574b-8171-55a8737c921a",
     "name": "Compra y Venta API",
-    "description": "Pruebas de la API del proyecto Compra y Venta (Avance 2, TWM). Cada carpeta tiene al menos un caso de éxito y dos de error, con el código esperado en la descripción. Se ejecuta en orden sobre una base recién cargada con database/01_tablas.sql y database/02_datos.sql. Cambiar la variable baseUrl por la IP de la Raspberry. La clave Clave2026 es solo de los datos de ejemplo.",
+    "description": "Pruebas de la API del proyecto Compra y Venta (Avance 3, TWM). Cada carpeta tiene al menos un caso de éxito y dos de error, con el código esperado en la descripción. Se ejecuta en orden sobre una base recién cargada con database/01_tablas.sql y database/02_datos.sql. Cambiar la variable baseUrl por la IP de la Raspberry.\n\nLas claves no viajan en texto plano: el frontend las cifra con bcrypt usando una sal que sale del RUN (src/utils/clave.js) y el backend vuelve a cifrar ese valor con bcrypt antes de guardarlo. Por eso en los cuerpos de login, registro y cambio de clave aparece el valor ya cifrado; la descripción de cada petición dice cuál es la clave sin cifrar. La clave Clave2026 es solo de los datos de ejemplo.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -38,7 +38,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"run\": \"20.456.789-1\",\n  \"clave\": \"Clave2026\",\n  \"recordarSesion\": true\n}",
+              "raw": "{\n  \"run\": \"20.456.789-1\",\n  \"clave\": \"$2b$10$CompraVenta204567891..GSz/mmN8sIwKKgQJe2TKkqnQWl5TKwi\",\n  \"recordarSesion\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -55,7 +55,7 @@
                 "login"
               ]
             },
-            "description": "Caso de éxito. Código esperado: 200 OK.\n\nInicia sesión con un usuario de los datos de ejemplo. Devuelve el usuario (sin clave) y un token."
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nInicia sesión con un usuario de los datos de ejemplo. Devuelve el usuario (sin clave) y un token.\n\nClave sin cifrar (clave = Clave2026), cifrada como lo hace el frontend."
           },
           "response": []
         },
@@ -87,7 +87,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"run\": \"20.456.789-1\",\n  \"clave\": \"OtraClave1\",\n  \"recordarSesion\": false\n}",
+              "raw": "{\n  \"run\": \"20.456.789-1\",\n  \"clave\": \"$2b$10$CompraVenta204567891..SX34eanBlkDWACZUemYJ24oAMMJPeJ6\",\n  \"recordarSesion\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -104,7 +104,56 @@
                 "login"
               ]
             },
-            "description": "Caso de error. Código esperado: 401 Unauthorized.\n\nLa clave no coincide con el hash guardado: responde RUN o clave incorrectos."
+            "description": "Caso de error. Código esperado: 401 Unauthorized.\n\nLa clave no coincide con el hash guardado: responde RUN o clave incorrectos.\n\nClave sin cifrar (clave = OtraClave1), cifrada como lo hace el frontend."
+          },
+          "response": []
+        },
+        {
+          "name": "Login con la clave sin cifrar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"run\": \"20.456.789-1\",\n  \"clave\": \"Clave2026\",\n  \"recordarSesion\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 400 Bad Request.\n\nLa clave llega en texto plano. El backend la rechaza porque siempre debe venir cifrada desde el frontend."
           },
           "response": []
         },
@@ -136,7 +185,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"run\": \"15.444.333-9\",\n  \"clave\": \"Clave2026\",\n  \"recordarSesion\": false\n}",
+              "raw": "{\n  \"run\": \"15.444.333-9\",\n  \"clave\": \"$2b$10$CompraVenta154443339..ZrArog1baZ69b/cEuOmPFPhvbPMWK4W\",\n  \"recordarSesion\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -153,7 +202,7 @@
                 "login"
               ]
             },
-            "description": "Caso de error. Código esperado: 401 Unauthorized.\n\nEl RUN es válido pero no existe en la base de datos."
+            "description": "Caso de error. Código esperado: 401 Unauthorized.\n\nEl RUN es válido pero no existe en la base de datos.\n\nClave sin cifrar (clave = Clave2026), cifrada como lo hace el frontend."
           },
           "response": []
         },
@@ -185,7 +234,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"run\": \"12.345.678-0\",\n  \"clave\": \"Clave2026\",\n  \"recordarSesion\": false\n}",
+              "raw": "{\n  \"run\": \"12.345.678-0\",\n  \"clave\": \"$2b$10$CompraVenta123456780..DPwgTnkFiaimZniIhMvLpSVQWuEBDSS\",\n  \"recordarSesion\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -202,7 +251,7 @@
                 "login"
               ]
             },
-            "description": "Caso de error. Código esperado: 400 Bad Request.\n\nEl dígito verificador no corresponde (módulo 11)."
+            "description": "Caso de error. Código esperado: 400 Bad Request.\n\nEl dígito verificador no corresponde (módulo 11).\n\nClave sin cifrar (clave = Clave2026), cifrada como lo hace el frontend."
           },
           "response": []
         },
@@ -284,7 +333,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"run\": \"21.987.654-8\",\n  \"nombres\": \"Pedro Antonio\",\n  \"apellidos\": \"Álvarez Ruiz\",\n  \"fechaNacimiento\": \"1996-08-20\",\n  \"edad\": 30,\n  \"esMenorDeEdad\": false,\n  \"clave\": \"MiClave2026\",\n  \"roles\": [\n    \"Cliente\",\n    \"Vendedor\"\n  ],\n  \"telefonos\": [\n    \"+56 9 5555 1234\"\n  ],\n  \"correos\": [\n    \"pedro.alvarez@gmail.com\"\n  ],\n  \"direcciones\": [\n    {\n      \"calle\": \"Bulnes\",\n      \"numero\": \"640\",\n      \"comuna\": \"Osorno\",\n      \"codigoPostal\": \"5290000\",\n      \"principal\": true\n    }\n  ],\n  \"empresa\": {\n    \"rut\": \"77.888.999-4\",\n    \"nombre\": \"Quesería Álvarez\",\n    \"personas\": 2,\n    \"telefono\": \"+56 64 233 4455\",\n    \"correo\": \"contacto@queseriaalvarez.cl\",\n    \"sitioWeb\": \"\",\n    \"direccion\": \"Bulnes 640, Osorno\",\n    \"ofreceProductos\": true,\n    \"ofreceServicios\": false\n  }\n}",
+              "raw": "{\n  \"run\": \"21.987.654-8\",\n  \"nombres\": \"Pedro Antonio\",\n  \"apellidos\": \"Álvarez Ruiz\",\n  \"fechaNacimiento\": \"1996-08-20\",\n  \"edad\": 30,\n  \"esMenorDeEdad\": false,\n  \"clave\": \"$2b$10$CompraVenta219876548..g9Xo/1m5GtRZCD.9GHuxowdK1atw3Yy\",\n  \"roles\": [\n    \"Cliente\",\n    \"Vendedor\"\n  ],\n  \"telefonos\": [\n    \"+56 9 5555 1234\"\n  ],\n  \"correos\": [\n    \"pedro.alvarez@gmail.com\"\n  ],\n  \"direcciones\": [\n    {\n      \"calle\": \"Bulnes\",\n      \"numero\": \"640\",\n      \"comuna\": \"Osorno\",\n      \"codigoPostal\": \"5290000\",\n      \"principal\": true\n    }\n  ],\n  \"empresa\": {\n    \"rut\": \"77.888.999-4\",\n    \"nombre\": \"Quesería Álvarez\",\n    \"personas\": 2,\n    \"telefono\": \"+56 64 233 4455\",\n    \"correo\": \"contacto@queseriaalvarez.cl\",\n    \"sitioWeb\": \"\",\n    \"direccion\": \"Bulnes 640, Osorno\",\n    \"ofreceProductos\": true,\n    \"ofreceServicios\": false\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -302,7 +351,7 @@
                 "registro"
               ]
             },
-            "description": "Caso de éxito. Código esperado: 201 Created.\n\nCrea el usuario, su dirección, su teléfono y la compañía. La clave se guarda con bcrypt."
+            "description": "Caso de éxito. Código esperado: 201 Created.\n\nCrea el usuario, su dirección, su teléfono y la compañía. La clave se guarda con bcrypt.\n\nClave sin cifrar (clave = MiClave2026), cifrada como lo hace el frontend."
           },
           "response": []
         },
@@ -334,7 +383,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"run\": \"21987654-8\",\n  \"clave\": \"MiClave2026\",\n  \"recordarSesion\": false\n}",
+              "raw": "{\n  \"run\": \"21987654-8\",\n  \"clave\": \"$2b$10$CompraVenta219876548..g9Xo/1m5GtRZCD.9GHuxowdK1atw3Yy\",\n  \"recordarSesion\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -351,7 +400,7 @@
                 "login"
               ]
             },
-            "description": "Caso de éxito. Código esperado: 200 OK.\n\nComprueba que la clave quedó guardada con bcrypt y que se puede iniciar sesión."
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nComprueba que la clave quedó guardada con bcrypt y que se puede iniciar sesión.\n\nClave sin cifrar (clave = MiClave2026), cifrada como lo hace el frontend."
           },
           "response": []
         },
@@ -383,7 +432,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"run\": \"21.987.654-8\",\n  \"nombres\": \"Pedro Antonio\",\n  \"apellidos\": \"Álvarez Ruiz\",\n  \"fechaNacimiento\": \"1996-08-20\",\n  \"edad\": 30,\n  \"esMenorDeEdad\": false,\n  \"clave\": \"MiClave2026\",\n  \"roles\": [\n    \"Cliente\"\n  ],\n  \"telefonos\": [],\n  \"correos\": [\n    \"otro.correo@gmail.com\"\n  ],\n  \"direcciones\": [\n    {\n      \"calle\": \"Bulnes\",\n      \"numero\": \"640\",\n      \"comuna\": \"Osorno\",\n      \"codigoPostal\": \"5290000\",\n      \"principal\": true\n    }\n  ],\n  \"empresa\": null\n}",
+              "raw": "{\n  \"run\": \"21.987.654-8\",\n  \"nombres\": \"Pedro Antonio\",\n  \"apellidos\": \"Álvarez Ruiz\",\n  \"fechaNacimiento\": \"1996-08-20\",\n  \"edad\": 30,\n  \"esMenorDeEdad\": false,\n  \"clave\": \"$2b$10$CompraVenta219876548..g9Xo/1m5GtRZCD.9GHuxowdK1atw3Yy\",\n  \"roles\": [\n    \"Cliente\"\n  ],\n  \"telefonos\": [],\n  \"correos\": [\n    \"otro.correo@gmail.com\"\n  ],\n  \"direcciones\": [\n    {\n      \"calle\": \"Bulnes\",\n      \"numero\": \"640\",\n      \"comuna\": \"Osorno\",\n      \"codigoPostal\": \"5290000\",\n      \"principal\": true\n    }\n  ],\n  \"empresa\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -401,7 +450,7 @@
                 "registro"
               ]
             },
-            "description": "Caso de error. Código esperado: 409 Conflict.\n\nEl RUN ya está registrado."
+            "description": "Caso de error. Código esperado: 409 Conflict.\n\nEl RUN ya está registrado.\n\nClave sin cifrar (clave = MiClave2026), cifrada como lo hace el frontend."
           },
           "response": []
         },
@@ -483,7 +532,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"run\": \"23.111.222-7\",\n  \"nombres\": \"Pedro Antonio\",\n  \"apellidos\": \"Álvarez Ruiz\",\n  \"fechaNacimiento\": \"1996-08-20\",\n  \"edad\": 30,\n  \"esMenorDeEdad\": false,\n  \"clave\": \"MiClave2026\",\n  \"roles\": [\n    \"Admin\"\n  ],\n  \"telefonos\": [],\n  \"correos\": [\n    \"nuevo.admin@gmail.com\"\n  ],\n  \"direcciones\": [\n    {\n      \"calle\": \"Bulnes\",\n      \"numero\": \"640\",\n      \"comuna\": \"Osorno\",\n      \"codigoPostal\": \"5290000\",\n      \"principal\": true\n    }\n  ],\n  \"empresa\": null\n}",
+              "raw": "{\n  \"run\": \"23.111.222-7\",\n  \"nombres\": \"Pedro Antonio\",\n  \"apellidos\": \"Álvarez Ruiz\",\n  \"fechaNacimiento\": \"1996-08-20\",\n  \"edad\": 30,\n  \"esMenorDeEdad\": false,\n  \"clave\": \"$2b$10$CompraVenta231112227..mbDZuIl9rxubPySgHp4SfwOeHTUWJam\",\n  \"roles\": [\n    \"Admin\"\n  ],\n  \"telefonos\": [],\n  \"correos\": [\n    \"nuevo.admin@gmail.com\"\n  ],\n  \"direcciones\": [\n    {\n      \"calle\": \"Bulnes\",\n      \"numero\": \"640\",\n      \"comuna\": \"Osorno\",\n      \"codigoPostal\": \"5290000\",\n      \"principal\": true\n    }\n  ],\n  \"empresa\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -501,7 +550,7 @@
                 "registro"
               ]
             },
-            "description": "Caso de error. Código esperado: 400 Bad Request.\n\nAl registrarse solo se puede elegir Cliente o Vendedor."
+            "description": "Caso de error. Código esperado: 400 Bad Request.\n\nAl registrarse solo se puede elegir Cliente o Vendedor.\n\nClave sin cifrar (clave = MiClave2026), cifrada como lo hace el frontend."
           },
           "response": []
         }
@@ -696,7 +745,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"run\": \"19.555.444-7\",\n  \"clave\": \"195554447\",\n  \"recordarSesion\": false\n}",
+              "raw": "{\n  \"run\": \"19.555.444-7\",\n  \"clave\": \"$2b$10$CompraVenta195554447..P0tpQ1YiB71PyllMplKjKKuzSAi2PLa\",\n  \"recordarSesion\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -713,7 +762,7 @@
                 "login"
               ]
             },
-            "description": "Caso de éxito. Código esperado: 200 OK.\n\nLa clave temporal es el RUN sin puntos ni guion."
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nLa clave temporal es el RUN sin puntos ni guion.\n\nClave sin cifrar (clave = 195554447), cifrada como lo hace el frontend."
           },
           "response": []
         },
@@ -1043,7 +1092,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"run\": \"19.555.444-7\",\n  \"claveActual\": \"195554447\",\n  \"claveNueva\": \"NuevaClave2026\"\n}",
+              "raw": "{\n  \"run\": \"19.555.444-7\",\n  \"claveActual\": \"$2b$10$CompraVenta195554447..P0tpQ1YiB71PyllMplKjKKuzSAi2PLa\",\n  \"claveNueva\": \"$2b$10$CompraVenta195554447..iGfYfXywiw8n64VoMrN71lRs/jiuBfC\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1062,7 +1111,7 @@
                 "clave"
               ]
             },
-            "description": "Caso de éxito. Código esperado: 200 OK.\n\nVerifica la clave actual con bcrypt y guarda el hash de la nueva."
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nVerifica la clave actual con bcrypt y guarda el hash de la nueva.\n\nClave sin cifrar (claveActual = 195554447, claveNueva = NuevaClave2026), cifrada como lo hace el frontend."
           },
           "response": []
         },
@@ -1094,7 +1143,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"run\": \"19.555.444-7\",\n  \"claveActual\": \"195554447\",\n  \"claveNueva\": \"OtraClave2026\"\n}",
+              "raw": "{\n  \"run\": \"19.555.444-7\",\n  \"claveActual\": \"$2b$10$CompraVenta195554447..P0tpQ1YiB71PyllMplKjKKuzSAi2PLa\",\n  \"claveNueva\": \"$2b$10$CompraVenta195554447..bZNshhS3omoMZCpWTgBPSokgXDbzjyu\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1113,12 +1162,12 @@
                 "clave"
               ]
             },
-            "description": "Caso de error. Código esperado: 401 Unauthorized.\n\nLa clave actual no coincide."
+            "description": "Caso de error. Código esperado: 401 Unauthorized.\n\nLa clave actual no coincide.\n\nClave sin cifrar (claveActual = 195554447, claveNueva = OtraClave2026), cifrada como lo hace el frontend."
           },
           "response": []
         },
         {
-          "name": "Cambiar clave con clave nueva corta",
+          "name": "Cambiar clave enviando la clave nueva sin cifrar",
           "event": [
             {
               "listen": "test",
@@ -1145,7 +1194,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"run\": \"19.555.444-7\",\n  \"claveActual\": \"NuevaClave2026\",\n  \"claveNueva\": \"123\"\n}",
+              "raw": "{\n  \"run\": \"19.555.444-7\",\n  \"claveActual\": \"$2b$10$CompraVenta195554447..iGfYfXywiw8n64VoMrN71lRs/jiuBfC\",\n  \"claveNueva\": \"123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1164,7 +1213,132 @@
                 "clave"
               ]
             },
-            "description": "Caso de error. Código esperado: 400 Bad Request.\n\nLa clave nueva debe tener al menos 8 caracteres."
+            "description": "Caso de error. Código esperado: 400 Bad Request.\n\nLa clave nueva llega en texto plano (123). El backend solo acepta claves cifradas desde el frontend."
+          },
+          "response": []
+        },
+        {
+          "name": "Restablecer clave",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/{{usuarioCreadoId}}/clave/restablecer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "{{usuarioCreadoId}}",
+                "clave",
+                "restablecer"
+              ]
+            },
+            "description": "Caso exitoso. Código esperado: 200 OK.\n\nEl administrador deja como clave temporal el RUN sin puntos ni guion."
+          },
+          "response": []
+        },
+        {
+          "name": "Login con la clave restablecida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"run\": \"19.555.444-7\",\n  \"clave\": \"$2b$10$CompraVenta195554447..P0tpQ1YiB71PyllMplKjKKuzSAi2PLa\",\n  \"recordarSesion\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            },
+            "description": "Caso exitoso. Código esperado: 200 OK.\n\nClave sin cifrar (clave = 195554447), cifrada como lo hace el frontend."
+          },
+          "response": []
+        },
+        {
+          "name": "Restablecer clave de usuario inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 404 Not Found\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/9999/clave/restablecer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "9999",
+                "clave",
+                "restablecer"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 404 Not Found.\n\nNo existe un usuario con ese id."
           },
           "response": []
         },
@@ -2896,7 +3070,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"vendedorId\": 7,\n  \"productoId\": 14,\n  \"precioOferta\": 7490,\n  \"inicio\": \"2026-10-19\",\n  \"fin\": \"2027-01-15\",\n  \"difundir\": true\n}",
+              "raw": "{\n  \"vendedorId\": 7,\n  \"productoId\": 14,\n  \"precioOferta\": 7490,\n  \"inicio\": \"{{ofertaInicio}}\",\n  \"fin\": \"{{ofertaFin}}\",\n  \"difundir\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2945,7 +3119,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"vendedorId\": 7,\n  \"productoId\": 14,\n  \"precioOferta\": 7990,\n  \"inicio\": \"2026-11-01\",\n  \"fin\": \"2026-11-15\",\n  \"difundir\": false\n}",
+              "raw": "{\n  \"vendedorId\": 7,\n  \"productoId\": 14,\n  \"precioOferta\": 7990,\n  \"inicio\": \"{{ofertaCruzadaInicio}}\",\n  \"fin\": \"{{ofertaCruzadaFin}}\",\n  \"difundir\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2994,7 +3168,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"vendedorId\": 7,\n  \"productoId\": 14,\n  \"precioOferta\": 9000,\n  \"inicio\": \"2027-08-01\",\n  \"fin\": \"2027-08-31\",\n  \"difundir\": false\n}",
+              "raw": "{\n  \"vendedorId\": 7,\n  \"productoId\": 14,\n  \"precioOferta\": 9000,\n  \"inicio\": \"{{futuroInicio}}\",\n  \"fin\": \"{{futuroFin}}\",\n  \"difundir\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3043,7 +3217,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"vendedorId\": 7,\n  \"productoId\": 14,\n  \"precioOferta\": 7000,\n  \"inicio\": \"2027-08-31\",\n  \"fin\": \"2027-08-01\",\n  \"difundir\": false\n}",
+              "raw": "{\n  \"vendedorId\": 7,\n  \"productoId\": 14,\n  \"precioOferta\": 7000,\n  \"inicio\": \"{{futuroFin}}\",\n  \"fin\": \"{{futuroInicio}}\",\n  \"difundir\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3061,6 +3235,55 @@
               ]
             },
             "description": "Caso de error. Código esperado: 400 Bad Request.\n\nLa fecha de término no puede ser anterior a la de inicio."
+          },
+          "response": []
+        },
+        {
+          "name": "Crear oferta que empieza en el pasado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendedorId\": 7,\n  \"productoId\": 14,\n  \"precioOferta\": 7000,\n  \"inicio\": \"{{pasado}}\",\n  \"fin\": \"{{ofertaCruzadaFin}}\",\n  \"difundir\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ofertas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ofertas"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 400 Bad Request.\n\nLa fecha de inicio quedó en el pasado. Las fechas se calculan desde hoy en el script de la colección."
           },
           "response": []
         },
@@ -3092,7 +3315,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"vendedorId\": 7,\n  \"productoId\": 15,\n  \"precioOferta\": 25000,\n  \"inicio\": \"2027-02-01\",\n  \"fin\": \"2027-06-30\",\n  \"difundir\": false\n}",
+              "raw": "{\n  \"vendedorId\": 7,\n  \"productoId\": 15,\n  \"precioOferta\": 25000,\n  \"inicio\": \"{{largoInicio}}\",\n  \"fin\": \"{{largoFin}}\",\n  \"difundir\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3141,7 +3364,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"vendedorId\": 7,\n  \"productoId\": 1,\n  \"precioOferta\": 10000,\n  \"inicio\": \"2027-08-01\",\n  \"fin\": \"2027-08-31\",\n  \"difundir\": false\n}",
+              "raw": "{\n  \"vendedorId\": 7,\n  \"productoId\": 1,\n  \"precioOferta\": 10000,\n  \"inicio\": \"{{futuroInicio}}\",\n  \"fin\": \"{{futuroFin}}\",\n  \"difundir\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3190,7 +3413,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"vendedorId\": 7,\n  \"productoId\": 14,\n  \"precioOferta\": 6990,\n  \"inicio\": \"2026-10-19\",\n  \"fin\": \"2027-01-15\",\n  \"difundir\": true\n}",
+              "raw": "{\n  \"vendedorId\": 7,\n  \"productoId\": 14,\n  \"precioOferta\": 6990,\n  \"inicio\": \"{{ofertaInicio}}\",\n  \"fin\": \"{{ofertaFin}}\",\n  \"difundir\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3240,7 +3463,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"vendedorId\": 7,\n  \"productoId\": 14,\n  \"precioOferta\": 6990,\n  \"inicio\": \"2026-10-19\",\n  \"fin\": \"2027-01-15\",\n  \"difundir\": false\n}",
+              "raw": "{\n  \"vendedorId\": 7,\n  \"productoId\": 14,\n  \"precioOferta\": 6990,\n  \"inicio\": \"{{ofertaInicio}}\",\n  \"fin\": \"{{ofertaFin}}\",\n  \"difundir\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -8022,6 +8245,363 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Reportes",
+      "item": [
+        {
+          "name": "Reporte del emprendedor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "pm.test(\"Trae los datos del reporte\", function () {",
+                  "    var datos = pm.response.json().data;",
+                  "    pm.expect(datos.pedidos > 0 && datos.ventasPorMes.length === 5 && datos.productosMasVendidos.length > 0).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vendedores/2/reportes?desde=2026-06-01&hasta=2026-10-31",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vendedores",
+                "2",
+                "reportes"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-06-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            },
+            "description": "Caso exitoso. Código esperado: 200 OK.\n\nVentas, pedidos, venta promedio, calificaciones, ventas por mes y productos más vendidos de Darnell Bros entre junio y octubre de 2026."
+          },
+          "response": []
+        },
+        {
+          "name": "Reporte del emprendedor sin fechas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "pm.test(\"Trae los datos del reporte\", function () {",
+                  "    var datos = pm.response.json().data;",
+                  "    pm.expect(datos.ventasPorMes.length === 6).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vendedores/2/reportes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vendedores",
+                "2",
+                "reportes"
+              ]
+            },
+            "description": "Caso exitoso. Código esperado: 200 OK.\n\nSin desde ni hasta se toman los últimos 6 meses, contando el actual."
+          },
+          "response": []
+        },
+        {
+          "name": "Reporte con fechas al revés",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vendedores/2/reportes?desde=2026-10-01&hasta=2026-06-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vendedores",
+                "2",
+                "reportes"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-10-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-06-01"
+                }
+              ]
+            },
+            "description": "Caso de error. Código esperado: 400 Bad Request.\n\nLa fecha desde es posterior a la fecha hasta."
+          },
+          "response": []
+        },
+        {
+          "name": "Reporte con fecha futura",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vendedores/2/reportes?desde=2026-06-01&hasta=2099-01-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vendedores",
+                "2",
+                "reportes"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-06-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2099-01-01"
+                }
+              ]
+            },
+            "description": "Caso de error. Código esperado: 400 Bad Request.\n\nLa fecha hasta no puede ser futura."
+          },
+          "response": []
+        },
+        {
+          "name": "Reporte de un usuario que no es emprendedor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 409 Conflict\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vendedores/1/reportes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vendedores",
+                "1",
+                "reportes"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 409 Conflict.\n\nEl usuario 1 es solo cliente."
+          },
+          "response": []
+        },
+        {
+          "name": "Reporte de vendedor inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 404 Not Found\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vendedores/9999/reportes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vendedores",
+                "9999",
+                "reportes"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 404 Not Found.\n\nNo existe un usuario con ese id."
+          },
+          "response": []
+        },
+        {
+          "name": "Resumen de la plataforma",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "pm.test(\"Trae los datos del reporte\", function () {",
+                  "    var datos = pm.response.json().data;",
+                  "    pm.expect(datos.usuarios > 0 && datos.tiendasMasVendedoras.length > 0).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reportes/plataforma?desde=2026-06-01&hasta=2026-10-31",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reportes",
+                "plataforma"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "2026-06-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-10-31"
+                }
+              ]
+            },
+            "description": "Caso exitoso. Código esperado: 200 OK.\n\nVentas de todas las tiendas, usuarios por rol, tiendas con más ventas y alertas para el administrador."
+          },
+          "response": []
+        },
+        {
+          "name": "Resumen con formato de fecha inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reportes/plataforma?desde=01-06-2026",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reportes",
+                "plataforma"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "01-06-2026"
+                }
+              ]
+            },
+            "description": "Caso de error. Código esperado: 400 Bad Request.\n\nLas fechas van como AAAA-MM-DD."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [
@@ -8089,6 +8669,93 @@
       "key": "ventaId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "ofertaInicio",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ofertaFin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ofertaCruzadaInicio",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ofertaCruzadaFin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "futuroInicio",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "futuroFin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "largoInicio",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "largoFin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pasado",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
     }
-  ]
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// fechas relativas a hoy para que las ofertas no queden en el pasado",
+          "var dia = function (n) { var d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };",
+          "pm.collectionVariables.set(\"ofertaInicio\", dia(1));",
+          "pm.collectionVariables.set(\"ofertaFin\", dia(60));",
+          "pm.collectionVariables.set(\"ofertaCruzadaInicio\", dia(10));",
+          "pm.collectionVariables.set(\"ofertaCruzadaFin\", dia(20));",
+          "pm.collectionVariables.set(\"futuroInicio\", dia(200));",
+          "pm.collectionVariables.set(\"futuroFin\", dia(230));",
+          "pm.collectionVariables.set(\"largoInicio\", dia(250));",
+          "pm.collectionVariables.set(\"largoFin\", dia(400));",
+          "pm.collectionVariables.set(\"pasado\", dia(-5));",
+          "// token del administrador (sirve para todas las rutas). Se pide una vez y se reutiliza hasta que el backend se reinicie",
+          "if (!pm.collectionVariables.get(\"token\")) {",
+          "  pm.sendRequest({ url: pm.collectionVariables.get(\"baseUrl\") + \"/api/login\", method: \"POST\", header: { \"Content-Type\": \"application/json\" },",
+          "    body: { mode: \"raw\", raw: JSON.stringify({ run: \"11.111.111-1\", clave: \"$2b$10$CompraVenta111111111..xkoWAlKkagiDUJ3vbsaVfhasSSWGYgG\" }) } },",
+          "    function (err, res) { if (!err && res.code === 200) pm.collectionVariables.set(\"token\", res.json().data.token); });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  }
 }

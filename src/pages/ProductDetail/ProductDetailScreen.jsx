@@ -182,7 +182,7 @@ const FichaProducto = ({ productoId }) => {
     console.log("Datos para crear pregunta:", datos);
     const respuesta = await crearPregunta(datos);
     if (!respuesta.ok) {
-      setAviso("No se pudo enviar la pregunta. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudo enviar la pregunta. Intenta de nuevo.");
       return false;
     }
     setPreguntas((actuales) => [respuesta.datos, ...actuales]);

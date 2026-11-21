@@ -60,7 +60,7 @@ const NotificationsScreen = () => {
     console.log("Avisos marcados como leídos:", { usuarioId: usuario.id, cantidad: sinLeer });
     const respuesta = await marcarTodasLeidas(usuario.id);
     if (!respuesta.ok) {
-      setAviso("No se pudieron marcar los avisos. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudieron marcar los avisos. Intenta de nuevo.");
       return;
     }
     setAviso("Todos tus avisos quedaron como leídos");
@@ -71,7 +71,7 @@ const NotificationsScreen = () => {
     console.log("Aviso eliminado:", { id: notificacion.id, texto: notificacion.texto });
     const respuesta = await eliminarNotificacion(notificacion.id);
     if (!respuesta.ok) {
-      setAviso("No se pudo eliminar el aviso. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudo eliminar el aviso. Intenta de nuevo.");
       return;
     }
     setAviso("Aviso eliminado");

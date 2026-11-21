@@ -65,7 +65,7 @@ const OffersScreen = () => {
     const respuesta = await eliminarOferta(oferta.id);
     setABorrar(null);
     if (!respuesta.ok) {
-      setAviso("No se pudo eliminar. Intenta de nuevo.");
+      setAviso(respuesta.error ?? "No se pudo eliminar. Intenta de nuevo.");
       return;
     }
     console.log("Oferta eliminada:", { id: oferta.id, producto: oferta.nombreProducto, precioOferta: oferta.precioOferta });
