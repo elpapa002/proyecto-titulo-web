@@ -9,6 +9,7 @@ import DeleteDialog from "../../components/organisms/DeleteDialog/DeleteDialog";
 import CustomButton from "../../components/atoms/Button/CustomButton";
 import SearchBar from "../../components/molecules/SearchBar/SearchBar";
 import Notice from "../../components/molecules/Notice/Notice";
+import useUser from "../../contexts/UserContext/useUser";
 import {
   actualizarCategoria,
   crearCategoria,
@@ -19,6 +20,9 @@ import {
 const tarjeta = { p: 2.5, borderRadius: 1.5, borderColor: "text.primary" };
 
 const CategoriesScreen = () => {
+  const { usuario } = useUser();
+  // el emprendedor puede crear categorías, pero cambiarlas o borrarlas es del administrador
+  const esAdmin = usuario.roles.includes("Admin");
   const [categorias, setCategorias] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [recargas, setRecargas] = useState(0);
@@ -100,8 +104,8 @@ const CategoriesScreen = () => {
               busqueda={busqueda}
               cargando={cargando}
               onAgregarSub={(padre) => setFormulario({ categoria: null, padreId: padre.id })}
-              onEditar={(categoria) => setFormulario({ categoria, padreId: null })}
-              onEliminar={setABorrar}
+              onEditar={esAdmin ? (categoria) => setFormulario({ categoria, padreId: null }) : undefined}
+              onEliminar={esAdmin ? setABorrar : undefined}
             />
           </Paper>
         </Grid>
@@ -117,7 +121,9 @@ const CategoriesScreen = () => {
                     subcategoría. Los clientes pueden buscar y filtrar por ellas en la tienda.
                   </Typography>
                   <Typography variant="body2" sx={{ mt: 1 }}>
-                    No se puede eliminar una categoría que tenga subcategorías o publicaciones.
+                    {esAdmin
+                      ? "No se puede eliminar una categoría que tenga subcategorías o publicaciones."
+                      : "Si falta una categoría para tu producto, la puedes crear aquí. Para cambiar o eliminar una, pídeselo al administrador."}
                   </Typography>
                 </Box>
               </Box>

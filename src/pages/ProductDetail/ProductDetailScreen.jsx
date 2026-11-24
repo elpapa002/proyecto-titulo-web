@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Box, Breadcrumbs, Button, Grid, Link, Paper, Rating, Stack, Typography } from "@mui/material";
 import { Link as RouterLink, useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
-import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
-import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
+
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
 import FavoriteIcon from "@mui/icons-material/Favorite";
@@ -18,6 +17,8 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import PageHeader from "../../components/organisms/PageHeader/PageHeader";
 import ProductGrid from "../../components/organisms/ProductGrid/ProductGrid";
+import ProductGallery from "../../components/organisms/ProductGallery/ProductGallery";
+import VariantPicker from "../../components/molecules/VariantPicker/VariantPicker";
 import ProductQuestions from "../../components/organisms/ProductQuestions/ProductQuestions";
 import ProductReviews from "../../components/organisms/ProductReviews/ProductReviews";
 import QuoteRequestDialog from "../../components/organisms/QuoteRequestDialog/QuoteRequestDialog";
@@ -30,7 +31,7 @@ import { obtenerProducto, obtenerRelacionados } from "../../services/productServ
 import { obtenerPreguntasProducto, crearPregunta } from "../../services/preguntaService";
 import { obtenerCalificacionesProducto } from "../../services/calificacionService";
 import { obtenerCategorias } from "../../services/catalogService";
-import { obtenerCostosEnvio } from "../../services/envioService";
+import { obtenerConfiguracionEnvio, obtenerCostosEnvio } from "../../services/envioService";
 import { crearCotizacion } from "../../services/cotizacionService";
 import { calcularEdad, formatearFecha, formatearPrecio, porcentajeDescuento } from "../../utils/formato";
 
@@ -56,6 +57,8 @@ const FichaProducto = ({ productoId }) => {
   const [cargando, setCargando] = useState(true);
   const [categorias, setCategorias] = useState([]);
   const [costosEnvio, setCostosEnvio] = useState([]);
+  const [configuracionEnvio, setConfiguracionEnvio] = useState(null);
+  const [varianteId, setVarianteId] = useState(null);
   const [preguntas, setPreguntas] = useState([]);
   const [calificaciones, setCalificaciones] = useState([]);
   const [relacionados, setRelacionados] = useState([]);
@@ -73,14 +76,18 @@ const FichaProducto = ({ productoId }) => {
         return;
       }
       const datos = respuesta.datos;
-      const [rPreguntas, rCalificaciones, rRelacionados, rCategorias, rEnvios] = await Promise.all([
+      const [rPreguntas, rCalificaciones, rRelacionados, rCategorias, rEnvios, rConfiguracion] = await Promise.all([
         obtenerPreguntasProducto(datos.id),
         obtenerCalificacionesProducto(datos.id),
         obtenerRelacionados(datos),
         obtenerCategorias(),
         obtenerCostosEnvio(datos.vendedorId),
+        obtenerConfiguracionEnvio(datos.vendedorId),
       ]);
       setProducto(datos);
+      // parte con la primera talla o color que tenga stock
+      setVarianteId((datos.variantes ?? []).find((v) => v.stock > 0)?.id ?? null);
+      if (rConfiguracion.ok) setConfiguracionEnvio(rConfiguracion.datos);
       if (rPreguntas.ok) setPreguntas(rPreguntas.datos);
       if (rCalificaciones.ok) setCalificaciones(rCalificaciones.datos);
       if (rRelacionados.ok) setRelacionados(rRelacionados.datos);
@@ -121,7 +128,14 @@ const FichaProducto = ({ productoId }) => {
   const unidad = esServicio ? "cupos" : "unidades";
   const descuento = porcentajeDescuento(producto);
   const favorito = favoritos.includes(producto.id);
-  const sinStock = producto.stock <= 0;
+  const variantes = producto.variantes ?? [];
+  const variante = variantes.find((v) => v.id === varianteId) ?? null;
+  const faltaVariante = variantes.length > 0 && !variante;
+  // con variantes, el precio, el stock y el SKU son los de la talla o color elegido
+  const precio = variante ? variante.precio : producto.precio;
+  const precioOferta = variante ? variante.precioOferta : producto.precioOferta;
+  const stock = variante ? variante.stock : producto.stock;
+  const sinStock = stock <= 0;
   const categoria = categorias.find((c) => c.id === producto.categoriaId);
   const subcategoria = categoria?.subcategorias.find((s) => s.id === producto.subcategoriaId);
   const textoCategoria = [categoria?.nombre, subcategoria?.nombre].filter(Boolean).join(" › ");
@@ -149,13 +163,13 @@ const FichaProducto = ({ productoId }) => {
       ];
 
   const agregar = () => {
-    const error = agregarAlCarro(producto, cantidad);
+    const error = agregarAlCarro(producto, cantidad, variante);
     if (error) {
       setAgregado(0);
       setAviso(error);
       return;
     }
-    console.log("Producto agregado al carro:", { productoId: producto.id, nombre: producto.nombre, cantidad });
+    console.log("Producto agregado al carro:", { productoId: producto.id, varianteId: variante?.id, nombre: producto.nombre, cantidad });
     setAgregado(cantidad);
     setCantidad(1);
     setAviso("Agregado al carro");
@@ -224,17 +238,7 @@ const FichaProducto = ({ productoId }) => {
 
       <Grid container spacing={{ xs: 2.5, md: 4 }}>
         <Grid size={{ xs: 12, md: 6 }}>
-          <Paper
-            variant="outlined"
-            sx={{ ...tarjeta, height: { xs: 240, md: 400 }, display: "grid", placeItems: "center" }}
-            aria-label="Sin fotos por ahora"
-          >
-            {esServicio ? (
-              <ScheduleOutlinedIcon sx={{ fontSize: 96, color: "text.primary" }} />
-            ) : (
-              <ImageOutlinedIcon sx={{ fontSize: 96, color: "text.primary" }} />
-            )}
-          </Paper>
+          <ProductGallery producto={producto} />
         </Grid>
 
         <Grid size={{ xs: 12, md: 6 }}>
@@ -280,11 +284,9 @@ const FichaProducto = ({ productoId }) => {
 
             <Box sx={{ display: "flex", alignItems: "baseline", gap: 1.5, flexWrap: "wrap" }}>
               <Typography sx={{ fontSize: 32, fontWeight: 700, color: "primary.main", lineHeight: 1.2 }}>
-                {formatearPrecio(producto.precioOferta ?? producto.precio)}
+                {formatearPrecio(precioOferta ?? precio)}
               </Typography>
-              {producto.precioOferta && (
-                <Typography sx={{ textDecoration: "line-through" }}>{formatearPrecio(producto.precio)}</Typography>
-              )}
+              {precioOferta && <Typography sx={{ textDecoration: "line-through" }}>{formatearPrecio(precio)}</Typography>}
               {descuento > 0 && <StatusChip texto={`−${descuento}%`} relleno />}
               <Typography variant="body2">{esServicio ? "por persona, IVA incluido" : "IVA incluido"}</Typography>
             </Box>
@@ -294,7 +296,7 @@ const FichaProducto = ({ productoId }) => {
                 <LocalOfferOutlinedIcon fontSize="small" />
                 <Typography>
                   Oferta válida hasta el {formatearFecha(producto.finOferta)}. Después vuelve a su precio normal de{" "}
-                  {formatearPrecio(producto.precio)}.
+                  {formatearPrecio(precio)}.
                 </Typography>
               </Box>
             )}
@@ -309,13 +311,22 @@ const FichaProducto = ({ productoId }) => {
                 <Dato texto="Cupos disponibles" valor={sinStock ? "Sin cupos" : producto.stock} />
               </Box>
             ) : (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-                {producto.sku && <Typography variant="body2">SKU: {producto.sku}</Typography>}
-                <StatusChip
-                  texto={sinStock ? "Sin stock" : `Stock: ${producto.stock} ${producto.stock === 1 ? "unidad" : "unidades"}`}
-                  relleno={sinStock}
-                />
-              </Box>
+              <Stack spacing={1.5}>
+                {variantes.length > 0 && <VariantPicker variantes={variantes} elegida={varianteId} onElegir={(id) => { setVarianteId(id); setCantidad(1); }} />}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+                  {(variante?.sku ?? producto.sku) && <Typography variant="body2">SKU: {variante?.sku ?? producto.sku}</Typography>}
+                  <StatusChip
+                    texto={
+                      faltaVariante
+                        ? "Elige una talla o color"
+                        : sinStock
+                          ? "Sin stock"
+                          : `Stock: ${stock} ${stock === 1 ? "unidad" : "unidades"}`
+                    }
+                    relleno={sinStock && !faltaVariante}
+                  />
+                </Box>
+              </Stack>
             )}
 
             {restriccion === "cumple" && (
@@ -366,15 +377,15 @@ const FichaProducto = ({ productoId }) => {
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
                   <QuantitySelector
                     valor={cantidad}
-                    maximo={producto.stock}
+                    maximo={stock}
                     onChange={setCantidad}
-                    disabled={sinStock || bloqueado}
+                    disabled={sinStock || bloqueado || faltaVariante}
                     etiqueta={esServicio ? "Cupos" : "Cantidad"}
                   />
                   <CustomButton
                     startIcon={<AddShoppingCartIcon />}
                     onClick={agregar}
-                    disabled={sinStock || bloqueado}
+                    disabled={sinStock || bloqueado || faltaVariante}
                     sx={{ flexGrow: 1, ...deshabilitado }}
                   >
                     Agregar al carro
@@ -389,9 +400,11 @@ const FichaProducto = ({ productoId }) => {
                   </CustomButton>
                 </Box>
                 <Typography variant="body2" sx={{ mt: "8px !important" }}>
-                  {sinStock
-                    ? `Sin ${unidad} por ahora. Puedes guardarlo o pedir una cotización.`
-                    : `Puedes llevar entre 1 y ${producto.stock} ${unidad}.`}
+                  {faltaVariante
+                    ? "Elige una talla o color para agregarlo al carro."
+                    : sinStock
+                      ? `Sin ${unidad} por ahora. Puedes guardarlo o pedir una cotización.`
+                      : `Puedes llevar entre 1 y ${stock} ${unidad}.`}
                 </Typography>
 
                 {agregado > 0 && (
@@ -426,8 +439,9 @@ const FichaProducto = ({ productoId }) => {
                 <LocalShippingOutlinedIcon fontSize="small" />
                 <Typography>
                   {comunasEnvio.length
-                    ? `Despacha a ${unirConY(comunasEnvio)}, desde ${formatearPrecio(envioMinimo)}. El costo exacto se calcula en el paso de despacho.`
+                    ? `Despacha a ${unirConY(comunasEnvio)}${configuracionEnvio?.forma === "Peso" ? ". Cobra según el peso del pedido" : `, desde ${formatearPrecio(envioMinimo)}`}. El costo exacto se calcula en el paso de despacho.`
                     : "Este emprendedor todavía no tiene comunas de despacho."}
+                  {configuracionEnvio?.retiroLocal && ` Retiro en el local gratis (${configuracionEnvio.direccionRetiro}).`}
                 </Typography>
               </Box>
             )}

@@ -16,6 +16,7 @@ namespace CompraVenta.Api.DTOs
         public string EmpresaTransporte { get; set; }
         public string Seguimiento { get; set; }
         public bool Calificada { get; set; }
+        public bool Retiro { get; set; }
         public string Cliente { get; set; }
         public string Tienda { get; set; }
     }

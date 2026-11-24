@@ -5,6 +5,8 @@
     <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>CompraVenta.Api</RootNamespace>
+    <!-- si el computador no tiene .NET 8 pero si uno mas nuevo (10 u 11), corre con ese -->
+    <RollForward>Major</RollForward>
   </PropertyGroup>
 
   <ItemGroup>

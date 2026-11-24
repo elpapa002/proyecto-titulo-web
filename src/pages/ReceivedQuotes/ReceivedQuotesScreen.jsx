@@ -12,13 +12,14 @@ import { DIAS_VIGENCIA, obtenerCotizacionesRecibidas, responderCotizacion } from
 import { obtenerMisProductos } from "../../services/productService";
 import { formatearFecha, formatearPrecio } from "../../utils/formato";
 
-const ESTADOS = ["Pendiente", "Respondida", "Aceptada", "Rechazada", "Vencida"];
+const ESTADOS = ["Pendiente", "Respondida", "Aceptada", "Rechazada", "Expirada"];
 const tarjeta = { p: 2.5, borderRadius: 1.5, borderColor: "text.primary" };
 const recuadro = { border: "1px solid", borderColor: "text.primary", borderRadius: 1, p: 1.25 };
 
 const textoVigencia = (cotizacion) => {
   const { respuesta, estado } = cotizacion;
-  if (estado === "Vencida") return `Venció el ${formatearFecha(respuesta.vigencia)}`;
+  if (estado === "Expirada")
+    return `Expiró el ${formatearFecha(respuesta.vigencia)} · precio reajustado ${formatearPrecio(respuesta.totalReajustado)} · se elimina el ${formatearFecha(respuesta.eliminaEl)}`;
   if (estado === "Respondida") return `Vigente hasta el ${formatearFecha(respuesta.vigencia)}`;
   return `Tenía vigencia hasta el ${formatearFecha(respuesta.vigencia)}`;
 };

@@ -94,7 +94,7 @@ namespace CompraVenta.Api.Controllers
 
             _context.Categorias.Remove(categoria);
             await _context.SaveChangesAsync();
-            return NoContent();
+            return Ok(RespuestaApi.Exito("Categoría eliminada correctamente.", null));
         }
 
         private async Task<IActionResult> RevisarPadre(int? padreId, int idActual)

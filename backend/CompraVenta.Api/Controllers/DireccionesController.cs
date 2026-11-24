@@ -34,6 +34,7 @@ namespace CompraVenta.Api.Controllers
             var problema = RevisarDireccion(datos);
             if (problema != null) return problema;
 
+            if (!this.Puede(datos.UsuarioId)) return this.SinPermiso();
             if (await _context.Usuarios.FindAsync(datos.UsuarioId) is null)
                 return NotFound(RespuestaApi.Error("El usuario no existe."));
 
@@ -67,6 +68,7 @@ namespace CompraVenta.Api.Controllers
         {
             var direccion = await _context.Direcciones.FindAsync(id);
             if (direccion is null) return NotFound(RespuestaApi.Error("Dirección no encontrada."));
+            if (!this.Puede(direccion.UsuarioId)) return this.SinPermiso();
 
             var problema = RevisarDireccion(datos);
             if (problema != null) return problema;
@@ -95,6 +97,7 @@ namespace CompraVenta.Api.Controllers
         {
             var direccion = await _context.Direcciones.FindAsync(id);
             if (direccion is null) return NotFound(RespuestaApi.Error("Dirección no encontrada."));
+            if (!this.Puede(direccion.UsuarioId)) return this.SinPermiso();
 
             var otras = await _context.Direcciones
                 .Where(d => d.UsuarioId == direccion.UsuarioId && d.Id != id)
@@ -107,7 +110,7 @@ namespace CompraVenta.Api.Controllers
 
             _context.Direcciones.Remove(direccion);
             await _context.SaveChangesAsync();
-            return NoContent();
+            return Ok(RespuestaApi.Exito("Dirección eliminada correctamente.", null));
         }
 
         private IActionResult RevisarDireccion(DireccionCrearDto datos)

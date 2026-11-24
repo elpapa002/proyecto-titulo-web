@@ -73,6 +73,7 @@ namespace CompraVenta.Api.Controllers
                 return BadRequest(RespuestaApi.Error("Datos inválidos.", new List<string> { "El autor debe ser el cliente o el vendedor de la conversación." }));
             if (string.IsNullOrWhiteSpace(datos.Texto))
                 return BadRequest(RespuestaApi.Error("Datos inválidos.", new List<string> { "El mensaje no puede estar vacío." }));
+            if (!this.Puede(datos.AutorId)) return this.SinPermiso("Solo puedes enviar mensajes a tu nombre.");
 
             var cliente = await _context.Usuarios.FindAsync(datos.ClienteId);
             if (cliente is null) return NotFound(RespuestaApi.Error("El cliente no existe."));

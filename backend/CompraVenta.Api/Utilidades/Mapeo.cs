@@ -84,8 +84,31 @@ namespace CompraVenta.Api.Utilidades
                 Resenas = producto.Resenas,
                 Tienda = Nombres.Tienda(producto.Vendedor),
                 PrecioOferta = oferta == null ? null : oferta.PrecioOferta,
-                FinOferta = oferta == null ? null : Validaciones.Texto(oferta.Fin)
+                FinOferta = oferta == null ? null : Validaciones.Texto(oferta.Fin),
+                TextoAlternativo = producto.TextoAlternativo ?? "",
+                Variantes = producto.Variantes
+                    .OrderBy(v => v.Id)
+                    .Select(v => new VarianteDto
+                    {
+                        Id = v.Id,
+                        Talla = v.Talla,
+                        Color = v.Color,
+                        Sku = v.Sku,
+                        Stock = v.Stock,
+                        Precio = v.Precio,
+                        PrecioOferta = oferta == null ? null : PrecioConOferta(producto, v.Precio, oferta)
+                    })
+                    .ToList(),
+                Fotos = producto.FotoIds.Select((id, i) => new FotoDto { Id = id, Orden = i }).ToList(),
+                Relacionados = producto.Relacionados.OrderBy(r => r.Id).Select(r => r.RelacionadoId).ToList()
             };
+        }
+
+        // la oferta baja el precio de cada variante en el mismo porcentaje que el precio del producto
+        public static int PrecioConOferta(Producto producto, int precio, Oferta oferta)
+        {
+            if (precio == producto.Precio) return oferta.PrecioOferta;
+            return (int)Math.Round((double)precio * oferta.PrecioOferta / producto.Precio, MidpointRounding.AwayFromZero);
         }
 
         public static OfertaDto DeOferta(Oferta oferta)
@@ -130,6 +153,25 @@ namespace CompraVenta.Api.Utilidades
             };
         }
 
+        public static CorreoDto DeCorreo(CorreoAdicional correo)
+        {
+            return new CorreoDto { Id = correo.Id, UsuarioId = correo.UsuarioId, Correo = correo.Correo };
+        }
+
+        public static ConfiguracionEnvioDto DeConfiguracionEnvio(ConfiguracionEnvio configuracion)
+        {
+            return new ConfiguracionEnvioDto
+            {
+                VendedorId = configuracion.VendedorId,
+                Forma = configuracion.Forma,
+                CostoBase = configuracion.CostoBase,
+                CostoKilo = configuracion.CostoKilo,
+                TamanoMaximo = configuracion.TamanoMaximo,
+                RetiroLocal = configuracion.RetiroLocal,
+                DireccionRetiro = configuracion.DireccionRetiro
+            };
+        }
+
         public static TelefonoDto DeTelefono(Telefono telefono)
         {
             return new TelefonoDto
@@ -150,7 +192,7 @@ namespace CompraVenta.Api.Utilidades
                 Fecha = Validaciones.Texto(venta.Fecha),
                 Items = venta.Detalles
                     .OrderBy(d => d.Id)
-                    .Select(d => new ItemVentaDto { ProductoId = d.ProductoId, Nombre = d.Nombre, Cantidad = d.Cantidad, Precio = d.Precio })
+                    .Select(d => new ItemVentaDto { ProductoId = d.ProductoId, VarianteId = d.VarianteId, Nombre = d.Nombre, Cantidad = d.Cantidad, Precio = d.Precio })
                     .ToList(),
                 Envio = venta.Envio,
                 Total = venta.Total,
@@ -166,6 +208,7 @@ namespace CompraVenta.Api.Utilidades
                 EmpresaTransporte = venta.EmpresaTransporte,
                 Seguimiento = venta.Seguimiento,
                 Calificada = venta.Calificada,
+                Retiro = venta.Retiro,
                 Cliente = Nombres.Corto(venta.Cliente),
                 Tienda = Nombres.Tienda(venta.Vendedor)
             };
@@ -189,9 +232,7 @@ namespace CompraVenta.Api.Utilidades
 
         public static string EstadoCotizacion(Cotizacion cotizacion)
         {
-            if (cotizacion.Estado == "Respondida" && cotizacion.Vigencia != null && cotizacion.Vigencia < Validaciones.Hoy())
-                return "Vencida";
-            return cotizacion.Estado;
+            return ReglasCotizacion.EstaExpirada(cotizacion) ? "Expirada" : cotizacion.Estado;
         }
 
         public static CotizacionDto DeCotizacion(Cotizacion cotizacion)
@@ -211,6 +252,14 @@ namespace CompraVenta.Api.Utilidades
                     Fecha = Validaciones.Texto(cotizacion.RespuestaFecha),
                     Vigencia = Validaciones.Texto(cotizacion.Vigencia)
                 };
+                var semanas = ReglasCotizacion.Semanas(cotizacion);
+                if (semanas > 0)
+                {
+                    respuesta.TotalReajustado = ReglasCotizacion.Reajustar(respuesta.Total, semanas);
+                    respuesta.SemanasReajuste = semanas;
+                    respuesta.ReajusteSemanal = ReglasCotizacion.ReajusteSemanal;
+                    respuesta.EliminaEl = Validaciones.Texto(ReglasCotizacion.EliminaEl(cotizacion));
+                }
             }
 
             return new CotizacionDto

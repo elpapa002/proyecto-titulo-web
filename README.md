@@ -20,7 +20,7 @@ Grupo 2 - Tecnologías Web y Móviles, Sección 1
 3. `database/`: scripts de PostgreSQL con las tablas y los datos de ejemplo. Ver `database/README.md`.
 4. `raspberry/instalar.sh`: deja todo funcionando en la Raspberry (o en la máquina virtual) con un solo comando.
 5. `docs/RASPBERRY.md`: pasos de la Raspberry y de VirtualBox.
-6. Minutas de las reuniones en la raíz.
+6. `Minutas/`: minutas semanales de las reuniones del grupo.
 
 ## Cómo ejecutarlo
 
@@ -40,21 +40,22 @@ En el login están los botones "Recorrer el prototipo como". Con el backend la c
 
 ## Qué incluye
 
-1. Cliente: inicio con ofertas y categorías, búsqueda, ficha de producto y de servicio, lista de deseos, carro, despacho, pago y boleta (se puede descargar en PDF), mis compras con seguimiento, calificar, devoluciones, cotizaciones, mensajes, avisos y mi perfil con direcciones y teléfonos.
-2. Emprendedor: resumen, publicaciones, ofertas, categorías, ventas y pedidos con despacho, cotizaciones, preguntas, devoluciones, costos de envío, reportes de ventas con descarga en PDF, mensajes y avisos.
+1. Cliente: inicio con ofertas y categorías, búsqueda, ficha de producto y de servicio con fotos y elección de talla y color, lista de deseos y carro (se guardan al recargar), despacho o retiro en el local, pago y boleta (se puede descargar en PDF), mis compras con seguimiento, calificar, devoluciones, cotizaciones (con reajuste semanal cuando expiran), mensajes, avisos y mi perfil con direcciones, teléfonos y varios correos.
+2. Emprendedor: resumen, publicaciones con fotos, variantes (talla, color, SKU, stock y precio) y productos relacionados, ofertas, categorías, ventas y pedidos con despacho, cotizaciones, preguntas, devoluciones, costos de envío por comuna, región o peso y retiro en el local, reportes de ventas con descarga en PDF, mensajes y avisos.
 3. Administrador: resumen de la plataforma con datos reales y descarga en PDF, catálogo, usuarios (con restablecer clave), compañías y categorías.
 4. Formularios con campos obligatorios marcados con *, validación de formatos y fechas (no se aceptan fechas pasadas donde no corresponde) y `console.log` de cada envío sin mostrar contraseñas.
-5. Backend con 73 endpoints, validaciones, respuestas `{ success, message, data, errors }` y contraseñas con bcrypt.
+5. Backend con 84 endpoints, validaciones, respuestas `{ success, message, data, errors }`, contraseñas con bcrypt y sesión con token.
 
-## Contraseñas
+## Contraseñas y sesión
 
 1. La clave sale del navegador ya cifrada con bcrypt (`src/utils/clave.js`), nunca en texto plano.
 2. El backend solo acepta claves cifradas y las vuelve a cifrar con bcrypt antes de guardarlas.
-3. La conexión a la base (con su clave) va en un archivo `.env` que no se sube a GitHub.
+3. Al iniciar sesión el backend entrega un token firmado. Sin token las rutas responden 401, y cada persona solo puede ver o cambiar lo suyo (403 si intenta otra cosa). Las tareas de administración son solo del administrador.
+4. La conexión a la base (con su clave) va en un archivo `.env` que no se sube a GitHub.
 
 ## Pruebas
 
-1. Postman: `backend/postman/CompraVenta.postman_collection.json`, con casos de éxito y de error para cada grupo de endpoints.
+1. Postman: `backend/postman/CompraVenta.postman_collection.json`, con la secuencia de demostración, casos de éxito y de error para cada grupo de endpoints, y casos de seguridad (266 peticiones, 565 pruebas). Ver `backend/README.md`.
 2. Para dejar la base como al principio se vuelven a ejecutar los scripts de `database/`.
 
 ## Commits

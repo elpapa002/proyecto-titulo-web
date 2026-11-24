@@ -33,6 +33,7 @@ namespace CompraVenta.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> CrearOferta(OfertaCrearDto datos)
         {
+            if (!this.Puede(datos.VendedorId)) return this.SinPermiso("Solo puedes crear ofertas a tu nombre.");
             var vendedor = await _context.Usuarios.FindAsync(datos.VendedorId);
             if (vendedor is null) return NotFound(RespuestaApi.Error("El vendedor no existe."));
             if (!vendedor.EsVendedor) return Conflict(RespuestaApi.Error("El usuario no tiene el rol Vendedor."));
@@ -85,6 +86,7 @@ namespace CompraVenta.Api.Controllers
         {
             var oferta = await _context.Ofertas.FindAsync(id);
             if (oferta is null) return NotFound(RespuestaApi.Error("Oferta no encontrada."));
+            if (!this.Puede(oferta.VendedorId)) return this.SinPermiso("Solo puedes cambiar tus propias ofertas.");
 
             Validaciones.LeerFecha(datos.Inicio, out var inicio);
             Validaciones.LeerFecha(datos.Fin, out var fin);
@@ -115,10 +117,11 @@ namespace CompraVenta.Api.Controllers
         {
             var oferta = await _context.Ofertas.FindAsync(id);
             if (oferta is null) return NotFound(RespuestaApi.Error("Oferta no encontrada."));
+            if (!this.Puede(oferta.VendedorId)) return this.SinPermiso("Solo puedes eliminar tus propias ofertas.");
 
             _context.Ofertas.Remove(oferta);
             await _context.SaveChangesAsync();
-            return NoContent();
+            return Ok(RespuestaApi.Exito("Oferta eliminada correctamente.", null));
         }
 
         private async Task<IActionResult> ValidarOferta(OfertaCrearDto datos, int idActual, int vendedorId, bool revisarDuracion)

@@ -4,7 +4,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import CustomButton from "../../atoms/Button/CustomButton";
 import FormField from "../../molecules/FormField/FormField";
-import { DIAS_VIGENCIA } from "../../../services/cotizacionService";
+import { DIAS_PARA_ELIMINAR, DIAS_VIGENCIA } from "../../../services/cotizacionService";
 import { formatearPrecio } from "../../../utils/formato";
 
 const MAX_COMENTARIO = 300;
@@ -132,7 +132,8 @@ const QuoteReplyDialog = ({ cotizacion, productos, onCerrar, onGuardar }) => {
           helperText={errores.comentario ?? `${comentario.length}/${MAX_COMENTARIO} caracteres`}
         />
         <Typography variant="body2" sx={{ mt: 2 }}>
-          La cotización queda vigente por {DIAS_VIGENCIA} días desde que la envías. Después de eso pasa a "Vencida".
+          La cotización queda vigente por {DIAS_VIGENCIA} días desde que la envías. Si el cliente no la acepta, pasa a
+          "Expirada", su precio se reajusta cada semana y se elimina a los {DIAS_PARA_ELIMINAR} días.
         </Typography>
       </DialogContent>
 

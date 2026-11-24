@@ -31,6 +31,34 @@ namespace CompraVenta.Api.Controllers
             return Ok(RespuestaApi.Exito("Usuario encontrado.", Mapeo.DeUsuario(usuario)));
         }
 
+        // para la pantalla de registro: dice si el RUN, los correos o el RUT de la empresa ya se usan,
+        // sin entregar los datos de las otras personas
+        [HttpPost("disponibilidad")]
+        public async Task<IActionResult> RevisarDisponibilidad(DisponibilidadDto datos)
+        {
+            var resultado = new DisponibilidadRespuestaDto();
+            if (Rut.EsValido(datos.Run))
+            {
+                var run = Rut.Formatear(datos.Run);
+                resultado.RunOcupado = await _context.Usuarios.AnyAsync(u => u.Run == run);
+            }
+
+            var correos = (datos.Correos ?? new List<string>())
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Select(c => c.Trim().ToLower())
+                .ToList();
+            if (correos.Count > 0)
+                resultado.CorreosOcupados = await Correos.Ocupados(_context, correos);
+
+            if (Rut.EsValido(datos.RutEmpresa))
+            {
+                var rut = Rut.Formatear(datos.RutEmpresa);
+                resultado.RutEmpresaOcupado = await _context.Companias.AnyAsync(c => c.Rut == rut);
+            }
+
+            return Ok(RespuestaApi.Exito("Disponibilidad revisada.", resultado));
+        }
+
         [HttpPost("registro")]
         public async Task<IActionResult> Registrar(RegistroDto datos)
         {
@@ -49,6 +77,8 @@ namespace CompraVenta.Api.Controllers
             var correos = datos.Correos.Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c.Trim().ToLower()).ToList();
             if (correos.Count == 0) errores.Add("Debe ingresar al menos un correo.");
             else if (correos.Any(c => !Validaciones.EsCorreo(c) || c.Length > 120)) errores.Add("Algún correo no tiene un formato válido.");
+            else if (correos.Distinct().Count() != correos.Count) errores.Add("Hay correos repetidos.");
+            else if (correos.Count > 6) errores.Add("Puedes registrar como máximo 6 correos.");
 
             var telefonos = (datos.Telefonos ?? new List<string>()).Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim()).ToList();
             if (telefonos.Any(t => Validaciones.SoloDigitos(t).Length < 8 || t.Length > 20))
@@ -70,8 +100,9 @@ namespace CompraVenta.Api.Controllers
                 return Conflict(RespuestaApi.Error("El RUN ya está registrado.", new List<string> { "run: ya existe un usuario con ese RUN." }));
 
             var correo = correos[0];
-            if (await _context.Usuarios.AnyAsync(u => u.Correo == correo))
-                return Conflict(RespuestaApi.Error("El correo ya está registrado.", new List<string> { "correo: ya existe un usuario con ese correo." }));
+            var ocupados = await Correos.Ocupados(_context, correos);
+            if (ocupados.Count > 0)
+                return Conflict(RespuestaApi.Error("El correo ya está registrado.", new List<string> { $"correo: {ocupados[0]} ya pertenece a otra persona." }));
 
             var numerosExistentes = await _context.Telefonos.Select(t => t.Numero).ToListAsync();
             var digitosExistentes = numerosExistentes.Select(Validaciones.SoloDigitos).ToList();
@@ -143,6 +174,12 @@ namespace CompraVenta.Api.Controllers
                 _context.Telefonos.Add(new Telefono { UsuarioId = usuario.Id, Numero = numero });
             }
 
+            // el primer correo queda como principal y los demas como adicionales
+            foreach (var adicional in correos.Skip(1))
+            {
+                _context.CorreosAdicionales.Add(new CorreoAdicional { UsuarioId = usuario.Id, Correo = adicional });
+            }
+
             await _context.SaveChangesAsync();
             await transaccion.CommitAsync();
 
@@ -162,13 +199,15 @@ namespace CompraVenta.Api.Controllers
                 return Conflict(RespuestaApi.Error("El RUN ya está registrado.", new List<string> { "run: ya existe un usuario con ese RUN." }));
 
             var correo = datos.Correo.Trim().ToLower();
-            if (await _context.Usuarios.AnyAsync(u => u.Correo == correo))
+            if (await Correos.EstaOcupado(_context, correo))
                 return Conflict(RespuestaApi.Error("El correo ya está registrado.", new List<string> { "correo: ya existe un usuario con ese correo." }));
 
             var esVendedor = datos.Roles.Contains("Vendedor");
             if (esVendedor && datos.CompaniaId != null && await _context.Companias.FindAsync(datos.CompaniaId.Value) is null)
                 return NotFound(RespuestaApi.Error("La compañía no existe."));
 
+            // clave temporal al azar, cifrada igual que en el frontend; se le muestra una sola vez al administrador
+            var temporal = Claves.Temporal();
             var usuario = new Usuario
             {
                 Run = run,
@@ -177,8 +216,7 @@ namespace CompraVenta.Api.Controllers
                 Correo = correo,
                 FechaNacimiento = null,
                 FechaIngreso = Validaciones.Hoy(),
-                // clave temporal: el RUN sin puntos ni guion, cifrado igual que en el frontend
-                ClaveHash = BCrypt.Net.BCrypt.HashPassword(Claves.CifrarComoFrontend(run, Rut.Limpiar(run)), 10),
+                ClaveHash = BCrypt.Net.BCrypt.HashPassword(Claves.CifrarComoFrontend(run, temporal), 10),
                 EsCliente = datos.Roles.Contains("Cliente"),
                 EsVendedor = esVendedor,
                 EsAdmin = datos.Roles.Contains("Admin"),
@@ -187,7 +225,9 @@ namespace CompraVenta.Api.Controllers
             _context.Usuarios.Add(usuario);
             await _context.SaveChangesAsync();
 
-            return Created($"/api/usuarios/{usuario.Id}", RespuestaApi.Exito("Usuario creado. Su clave temporal es su RUN sin puntos ni guion.", Mapeo.DeUsuario(usuario)));
+            var creado = Mapeo.DeUsuario(usuario);
+            creado.ClaveTemporal = temporal;
+            return Created($"/api/usuarios/{usuario.Id}", RespuestaApi.Exito("Usuario creado. Entrégale su clave temporal; debe cambiarla al entrar.", creado));
         }
 
         [HttpPut("{id}")]
@@ -216,6 +256,10 @@ namespace CompraVenta.Api.Controllers
 
             if (errores.Count > 0) return BadRequest(RespuestaApi.Error("Datos inválidos.", errores));
 
+            // solo el administrador puede dar el rol Admin
+            if (datos.Roles != null && datos.Roles.Contains("Admin") && !usuario.EsAdmin && !this.EsAdmin())
+                return this.SinPermiso("Solo el administrador puede dar el rol Admin.");
+
             if (datos.Run != null)
             {
                 var run = Rut.Formatear(datos.Run);
@@ -227,8 +271,11 @@ namespace CompraVenta.Api.Controllers
             if (datos.Correo != null)
             {
                 var correo = datos.Correo.Trim().ToLower();
-                if (await _context.Usuarios.AnyAsync(u => u.Correo == correo && u.Id != id))
+                if (await Correos.EstaOcupado(_context, correo, id))
                     return Conflict(RespuestaApi.Error("El correo ya está registrado.", new List<string> { "correo: ya existe un usuario con ese correo." }));
+                // si pasa a ser el principal, deja de estar en la lista de adicionales
+                var repetido = await _context.CorreosAdicionales.FirstOrDefaultAsync(c => c.UsuarioId == id && c.Correo == correo);
+                if (repetido != null) _context.CorreosAdicionales.Remove(repetido);
                 usuario.Correo = correo;
             }
 
@@ -278,7 +325,7 @@ namespace CompraVenta.Api.Controllers
             {
                 return Conflict(RespuestaApi.Error("No se puede eliminar el usuario porque tiene datos asociados."));
             }
-            return NoContent();
+            return Ok(RespuestaApi.Exito("Usuario eliminado correctamente.", null));
         }
 
         [HttpPut("{id}/clave")]
@@ -298,16 +345,19 @@ namespace CompraVenta.Api.Controllers
             return Ok(RespuestaApi.Exito("Clave actualizada.", Mapeo.DeUsuario(usuario)));
         }
 
-        // el administrador deja la clave temporal (RUN sin puntos ni guion) cuando alguien la olvida
+        // cuando alguien olvida su clave, el administrador le genera una clave temporal al azar
         [HttpPut("{id}/clave/restablecer")]
         public async Task<IActionResult> RestablecerClave(int id)
         {
             var usuario = await _context.Usuarios.FindAsync(id);
             if (usuario is null) return NotFound(RespuestaApi.Error("Usuario no encontrado."));
 
-            usuario.ClaveHash = BCrypt.Net.BCrypt.HashPassword(Claves.CifrarComoFrontend(usuario.Run, Rut.Limpiar(usuario.Run)), 10);
+            var temporal = Claves.Temporal();
+            usuario.ClaveHash = BCrypt.Net.BCrypt.HashPassword(Claves.CifrarComoFrontend(usuario.Run, temporal), 10);
             await _context.SaveChangesAsync();
-            return Ok(RespuestaApi.Exito("Clave restablecida. La clave temporal es el RUN sin puntos ni guion.", Mapeo.DeUsuario(usuario)));
+            var respuesta = Mapeo.DeUsuario(usuario);
+            respuesta.ClaveTemporal = temporal;
+            return Ok(RespuestaApi.Exito("Clave restablecida. Entrégale la clave temporal; debe cambiarla al entrar.", respuesta));
         }
     }
 }

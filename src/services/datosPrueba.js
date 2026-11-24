@@ -214,6 +214,13 @@ export const memoria = {
       estado: "Publicada",
       calificacion: 4.8,
       resenas: 126,
+      variantes: [
+        { id: 1, talla: "S", color: "Gris", sku: "TDS-POL-S-GR", stock: 3, precio: 24990 },
+        { id: 2, talla: "M", color: "Azul marino", sku: "TDS-POL-M-AZ", stock: 4, precio: 24990 },
+        { id: 3, talla: "L", color: "Azul marino", sku: "TDS-POL-L-AZ", stock: 4, precio: 24990 },
+        { id: 4, talla: "XL", color: "Negro", sku: "TDS-POL-XL-NE", stock: 3, precio: 26990 },
+      ],
+      relacionados: [3, 2],
     },
     {
       id: 2,
@@ -1163,6 +1170,22 @@ export const memoria = {
       estado: "Pendiente",
       respuesta: null,
     },
+    {
+      id: 4,
+      clienteId: 1,
+      vendedorId: 2,
+      fecha: diasDesdeHoy(-30),
+      items: [{ productoId: 2, nombre: "Gorro de lana chilota", cantidad: 5 }],
+      mensaje: "¿Me hacen precio por 5 gorros para mis sobrinos?",
+      estado: "Respondida",
+      respuesta: {
+        precios: [{ productoId: 2, precio: 9000 }],
+        total: 45000,
+        comentario: "Te dejo cada gorro a $9.000.",
+        fecha: diasDesdeHoy(-26),
+        vigencia: diasDesdeHoy(-11),
+      },
+    },
   ],
   preguntas: [
     {
@@ -1334,7 +1357,22 @@ export const memoria = {
     { id: 8, vendedorId: 5, comuna: "Osorno", costo: 3490, dias: 1 },
     { id: 9, vendedorId: 7, comuna: "Osorno", costo: 2990, dias: 1 },
     { id: 10, vendedorId: 7, comuna: "Puerto Varas", costo: 4990, dias: 3 },
+    { id: 11, vendedorId: 2, comuna: "Resto de la región", costo: 7990, dias: 5 },
   ],
+  configuracionesEnvio: [
+    {
+      vendedorId: 2,
+      forma: "Comuna",
+      costoBase: 0,
+      costoKilo: 0,
+      tamanoMaximo: "60 × 40 × 40 cm",
+      retiroLocal: true,
+      direccionRetiro: "Ramírez 1150, Osorno",
+    },
+    { vendedorId: 4, forma: "Peso", costoBase: 2990, costoKilo: 1200, tamanoMaximo: "60 × 40 × 40 cm", retiroLocal: false, direccionRetiro: "" },
+  ],
+  fotos: [],
+  correosAdicionales: [{ id: 1, usuarioId: 1, correo: "camila.rojas@outlook.com" }],
   direcciones: [
     { id: 1, usuarioId: 1, calle: "Av. Juan Mackenna", numero: "1270", comuna: "Osorno", codigoPostal: "5290000", principal: true },
     { id: 2, usuarioId: 1, calle: "San José", numero: "415", comuna: "Puerto Varas", codigoPostal: "5550000", principal: false },

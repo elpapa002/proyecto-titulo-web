@@ -5,9 +5,11 @@ import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import { formatearPrecio, porcentajeDescuento } from "../../../utils/formato";
+import { urlFoto } from "../../../services/api";
 
 const ProductCard = ({ producto, favorito = false, onFavorito }) => {
   const descuento = porcentajeDescuento(producto);
+  const foto = producto.fotos?.[0];
 
   return (
     <Paper
@@ -35,9 +37,17 @@ const ProductCard = ({ producto, favorito = false, onFavorito }) => {
           component={RouterLink}
           to={`/tienda/producto/${producto.id}`}
           aria-label={`Ver ${producto.nombre}`}
-          sx={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "text.primary" }}
+          sx={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "text.primary", overflow: "hidden" }}
         >
-          {producto.tipo === "Servicio" ? (
+          {foto ? (
+            <Box
+              component="img"
+              src={urlFoto(foto)}
+              alt={producto.textoAlternativo || producto.nombre}
+              loading="lazy"
+              sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          ) : producto.tipo === "Servicio" ? (
             <ScheduleOutlinedIcon sx={{ fontSize: 32 }} />
           ) : (
             <ImageOutlinedIcon sx={{ fontSize: 32 }} />

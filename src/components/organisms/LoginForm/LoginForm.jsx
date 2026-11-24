@@ -95,7 +95,7 @@ const LoginForm = ({ runInicial = "" }) => {
         <Link
           component="button"
           type="button"
-          onClick={() => setAviso("Pídele al administrador que restablezca tu clave. Quedará como tu RUN sin puntos ni guion.")}
+          onClick={() => setAviso("Pídele al administrador que restablezca tu clave. Te va a dar una clave temporal que debes cambiar en Mi perfil.")}
           sx={{ color: "secondary.main", fontSize: 14, textDecorationColor: "inherit" }}
         >
           ¿Olvidaste tu contraseña?

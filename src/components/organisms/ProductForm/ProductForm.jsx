@@ -1,17 +1,22 @@
 import { useState } from "react";
-import { Box, Button, Grid, InputAdornment, Paper, Stack, Typography } from "@mui/material";
+import { Autocomplete, Box, Chip, Grid, InputAdornment, Paper, Stack, TextField, Typography } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
-import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
-import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import PageHeader from "../PageHeader/PageHeader";
+import VariantTable from "../VariantTable/VariantTable";
+import PhotoUploader from "../PhotoUploader/PhotoUploader";
 import CustomButton from "../../atoms/Button/CustomButton";
 import FormField from "../../molecules/FormField/FormField";
 import SelectField from "../../molecules/SelectField/SelectField";
+import { urlFoto } from "../../../services/api";
 
-const DOS_MB = 2 * 1024 * 1024;
-const MAX_FOTOS = 4;
 const ESTADOS = ["Publicada", "Pausada", "Borrador"];
+const MAX_RELACIONADOS = 6;
 const tarjeta = { p: 3, borderRadius: 1.5, borderColor: "text.primary" };
+const entero = (valor) => /^\d+$/.test(String(valor));
+
+// clave solo para React (las variantes nuevas todavia no tienen id)
+let siguienteClave = 1;
+const aFila = (v) => ({ ...v, clave: siguienteClave++, stock: String(v.stock), precio: String(v.precio) });
 
 const ProductForm = ({ producto, tipoNuevo, categorias, productos, onGuardar, onCancelar }) => {
   const editando = Boolean(producto);
@@ -32,11 +37,27 @@ const ProductForm = ({ producto, tipoNuevo, categorias, productos, onGuardar, on
     precio: producto?.precio ?? "",
     edadMinima: producto?.edadMinima ?? 0,
     estado: producto?.estado ?? "Publicada",
-    textoAlternativo: "",
+    textoAlternativo: producto?.textoAlternativo ?? "",
   });
-  const [fotos, setFotos] = useState([]);
+  const [fotos, setFotos] = useState(() => (producto?.fotos ?? []).map((f) => ({ id: f.id, url: urlFoto(f) })));
+  const [variantes, setVariantes] = useState(() => (producto?.variantes ?? []).map(aFila));
+  const [relacionados, setRelacionados] = useState(producto?.relacionados ?? []);
   const [errores, setErrores] = useState({});
   const [guardando, setGuardando] = useState(false);
+
+  const conVariantes = !esServicio && variantes.length > 0;
+  const stockVariantes = variantes.reduce((suma, v) => suma + (Number(v.stock) || 0), 0);
+  const elegibles = productos.filter((p) => p.id !== producto?.id);
+
+  const cambiarVariante = (indice, fila) => {
+    setVariantes(variantes.map((v, i) => (i === indice ? fila : v)));
+    setErrores({ ...errores, variantes: undefined });
+  };
+
+  const agregarVariante = () => {
+    const sku = datos.sku ? `${datos.sku}-${variantes.length + 1}` : "";
+    setVariantes([...variantes, aFila({ talla: "", color: "", sku, stock: 0, precio: datos.precio || "" })]);
+  };
 
   const cambiar = (e) => {
     const { name, value } = e.target;
@@ -45,20 +66,22 @@ const ProductForm = ({ producto, tipoNuevo, categorias, productos, onGuardar, on
     setErrores({ ...errores, [name]: undefined });
   };
 
-  const subirFotos = (e) => {
-    const archivos = [...(e.target.files ?? [])];
-    if (archivos.length === 0) return;
-    if (archivos.some((a) => !["image/jpeg", "image/png"].includes(a.type))) {
-      setErrores({ ...errores, fotos: "Las fotos deben ser JPG o PNG." });
-      return;
+  const revisarVariantes = () => {
+    const vistas = new Set();
+    const skus = new Set([datos.sku]);
+    for (const v of variantes) {
+      const nombre = [v.talla.trim(), v.color.trim()].filter(Boolean).join(" ");
+      if (!nombre) return "Cada variante necesita una talla, un color o ambos.";
+      if (!/^[A-Z0-9-]{3,20}$/.test(v.sku)) return `El SKU de la variante ${nombre} debe tener al menos 3 caracteres.`;
+      if (skus.has(v.sku)) return `El SKU ${v.sku} está repetido. Cada variante debe tener un SKU distinto.`;
+      if (!entero(v.stock)) return `Ingresa el stock de la variante ${nombre}, solo números.`;
+      if (!entero(v.precio) || Number(v.precio) < 100) return `Ingresa un precio válido para la variante ${nombre}.`;
+      const combinacion = `${v.talla.trim().toLowerCase()}|${v.color.trim().toLowerCase()}`;
+      if (vistas.has(combinacion)) return `La variante ${nombre} está repetida.`;
+      vistas.add(combinacion);
+      skus.add(v.sku);
     }
-    if (archivos.some((a) => a.size > DOS_MB)) {
-      setErrores({ ...errores, fotos: "Cada foto puede pesar hasta 2 MB." });
-      return;
-    }
-    const nuevas = archivos.map((archivo) => ({ archivo, url: URL.createObjectURL(archivo) }));
-    setFotos([...fotos, ...nuevas].slice(0, MAX_FOTOS));
-    setErrores({ ...errores, fotos: undefined });
+    return undefined;
   };
 
   const opcionesCategoria = categorias.flatMap((c) =>
@@ -67,7 +90,6 @@ const ProductForm = ({ producto, tipoNuevo, categorias, productos, onGuardar, on
 
   const validar = () => {
     const e = {};
-    const entero = (valor) => /^\d+$/.test(String(valor));
     if (datos.nombre.trim().length < 3) e.nombre = "Ingresa un nombre de al menos 3 letras.";
     if (!datos.subcategoriaId) e.subcategoriaId = "Elige una categoría.";
     if (datos.descripcion.trim().length < 10) e.descripcion = "Describe la publicación con al menos 10 caracteres.";
@@ -81,7 +103,9 @@ const ProductForm = ({ producto, tipoNuevo, categorias, productos, onGuardar, on
       if (datos.sku.length < 3) e.sku = "El SKU debe tener al menos 3 caracteres.";
       else if (productos.some((p) => p.id !== producto?.id && p.sku === datos.sku)) e.sku = "Ya tienes una publicación con este SKU.";
     }
-    if (!entero(datos.stock)) e.stock = esServicio ? "Ingresa los cupos, solo números." : "Ingresa el stock, solo números.";
+    if (!conVariantes && !entero(datos.stock)) e.stock = esServicio ? "Ingresa los cupos, solo números." : "Ingresa el stock, solo números.";
+    if (conVariantes) e.variantes = revisarVariantes();
+    if (!e.variantes) delete e.variantes;
     if (!entero(datos.precio) || Number(datos.precio) < 100) e.precio = "Ingresa un precio válido, sin puntos.";
     if (esServicio && (!entero(datos.edadMinima) || Number(datos.edadMinima) > 99))
       e.edadMinima = "Ingresa una edad entre 0 y 99. Usa 0 si no tiene restricción.";
@@ -109,17 +133,36 @@ const ProductForm = ({ producto, tipoNuevo, categorias, productos, onGuardar, on
       color: esServicio ? "" : datos.color.trim(),
       duracion: esServicio ? datos.duracion.trim() : "",
       sku: esServicio ? "" : datos.sku,
-      stock: Number(datos.stock),
+      stock: conVariantes ? stockVariantes : Number(datos.stock),
       precio: Number(datos.precio),
       edadMinima: esServicio ? Number(datos.edadMinima) : 0,
       estado: comoBorrador ? "Borrador" : datos.estado,
-      fotos: fotos.map((f) => f.archivo.name),
       textoAlternativo: datos.textoAlternativo.trim(),
+      variantes: esServicio
+        ? []
+        : variantes.map((v) => ({
+            ...(v.id ? { id: v.id } : {}),
+            talla: v.talla.trim(),
+            color: v.color.trim(),
+            sku: v.sku,
+            stock: Number(v.stock),
+            precio: Number(v.precio),
+          })),
+      relacionados,
     };
-    console.log(editando ? "Datos para actualizar publicación:" : "Datos para crear publicación:", datosProducto);
+    // las fotos nuevas se suben despues de guardar; las que se quitaron se eliminan
+    const cambiosFotos = {
+      nuevas: fotos.filter((f) => f.nueva).map((f) => f.nueva),
+      borradas: (producto?.fotos ?? []).filter((f) => !fotos.some((actual) => actual.id === f.id)).map((f) => f.id),
+    };
+    console.log(editando ? "Datos para actualizar publicación:" : "Datos para crear publicación:", {
+      ...datosProducto,
+      fotosNuevas: cambiosFotos.nuevas.map((f) => f.nombre),
+      fotosQuitadas: cambiosFotos.borradas,
+    });
 
     setGuardando(true);
-    await onGuardar(datosProducto);
+    await onGuardar(datosProducto, cambiosFotos);
     setGuardando(false);
   };
 
@@ -209,7 +252,7 @@ const ProductForm = ({ producto, tipoNuevo, categorias, productos, onGuardar, on
 
             <Paper variant="outlined" sx={tarjeta}>
               <Typography variant="h3" sx={{ mb: 2 }}>
-                {esServicio ? "Cupos" : "SKU y stock"}
+                {esServicio ? "Cupos" : "Variantes, SKU y stock"}
               </Typography>
               <Grid container spacing={2}>
                 {!esServicio && (
@@ -223,15 +266,68 @@ const ProductForm = ({ producto, tipoNuevo, categorias, productos, onGuardar, on
                   </Grid>
                 )}
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <FormField
-                    label={esServicio ? "Cupos disponibles" : "Stock (unidades)"}
-                    type="number"
-                    required
-                    slotProps={{ htmlInput: { min: 0 } }}
-                    {...campo("stock")}
-                  />
+                  {conVariantes ? (
+                    <FormField
+                      label="Stock (unidades)"
+                      value={stockVariantes}
+                      disabled
+                      helperText="Suma del stock de las variantes."
+                    />
+                  ) : (
+                    <FormField
+                      label={esServicio ? "Cupos disponibles" : "Stock (unidades)"}
+                      type="number"
+                      required
+                      slotProps={{ htmlInput: { min: 0 } }}
+                      {...campo("stock")}
+                    />
+                  )}
                 </Grid>
               </Grid>
+              {!esServicio && (
+                <Box sx={{ mt: 2.5 }}>
+                  <VariantTable
+                    variantes={variantes}
+                    errores={errores}
+                    onCambiar={cambiarVariante}
+                    onAgregar={agregarVariante}
+                    onQuitar={(indice) => setVariantes(variantes.filter((_, i) => i !== indice))}
+                  />
+                </Box>
+              )}
+            </Paper>
+
+            <Paper variant="outlined" sx={tarjeta}>
+              <Typography variant="h3" sx={{ mb: 1 }}>
+                Productos relacionados
+              </Typography>
+              <Typography sx={{ mb: 2 }}>
+                Elige hasta {MAX_RELACIONADOS} publicaciones tuyas para mostrarlas en la ficha como "También te puede
+                interesar".
+              </Typography>
+              <Autocomplete
+                multiple
+                options={elegibles.map((p) => p.id)}
+                value={relacionados}
+                onChange={(_, valor) => setRelacionados(valor.slice(0, MAX_RELACIONADOS))}
+                getOptionLabel={(id) => elegibles.find((p) => p.id === id)?.nombre ?? `Publicación ${id}`}
+                noOptionsText="No hay publicaciones con ese nombre"
+                renderValue={(valor, getItemProps) =>
+                  valor.map((id, indice) => {
+                    const { key, ...props } = getItemProps({ index: indice });
+                    return (
+                      <Chip
+                        key={key}
+                        label={elegibles.find((p) => p.id === id)?.nombre ?? `Publicación ${id}`}
+                        {...props}
+                      />
+                    );
+                  })
+                }
+                renderInput={(params) => (
+                  <TextField {...params} placeholder="Buscar en mis publicaciones" aria-label="Buscar en mis publicaciones" />
+                )}
+              />
             </Paper>
           </Stack>
         </Grid>
@@ -242,42 +338,12 @@ const ProductForm = ({ producto, tipoNuevo, categorias, productos, onGuardar, on
               <Typography variant="h3" sx={{ mb: 2 }}>
                 Fotos
               </Typography>
-              <Button
-                component="label"
-                variant="outlined"
-                fullWidth
-                startIcon={<FileUploadOutlinedIcon />}
-                sx={{ borderStyle: "dashed", py: 2 }}
-                disabled={fotos.length >= MAX_FOTOS}
-              >
-                Subir fotos (máximo {MAX_FOTOS})
-                <Box component="input" hidden type="file" multiple accept="image/png,image/jpeg" onChange={subirFotos} />
-              </Button>
-              <Typography variant="body2" sx={{ mt: 1, fontWeight: errores.fotos ? 600 : 400 }} role={errores.fotos ? "alert" : undefined}>
-                {errores.fotos ?? "JPG o PNG de hasta 2 MB cada una."}
-              </Typography>
-              <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 1, my: 2 }}>
-                {Array.from({ length: MAX_FOTOS }).map((_, i) => (
-                  <Box
-                    key={i}
-                    sx={{
-                      aspectRatio: "1",
-                      border: "1px solid",
-                      borderColor: "text.primary",
-                      borderRadius: 1,
-                      display: "grid",
-                      placeItems: "center",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {fotos[i] ? (
-                      <Box component="img" src={fotos[i].url} alt={`Foto ${i + 1}`} sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    ) : (
-                      <ImageOutlinedIcon fontSize="small" />
-                    )}
-                  </Box>
-                ))}
-              </Box>
+              <PhotoUploader
+                fotos={fotos}
+                error={errores.fotos}
+                onCambiar={setFotos}
+                onError={(texto) => setErrores((actuales) => ({ ...actuales, fotos: texto || undefined }))}
+              />
               <FormField
                 label="Texto alternativo de la foto principal"
                 placeholder="Polerón gris con volcanes bordados"

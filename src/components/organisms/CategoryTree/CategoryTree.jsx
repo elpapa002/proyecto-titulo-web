@@ -32,20 +32,22 @@ const CategoryTree = ({ categorias, busqueda, cargando, onAgregarSub, onEditar, 
     else setCerradas([...cerradas, id]);
   };
 
-  const acciones = (categoria) => (
-    <Box sx={{ display: "flex", flexShrink: 0 }}>
-      <Tooltip title="Editar">
-        <IconButton size="small" onClick={() => onEditar(categoria)} aria-label={`Editar ${categoria.nombre}`}>
-          <EditOutlinedIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-      <Tooltip title="Eliminar">
-        <IconButton size="small" onClick={() => onEliminar(categoria)} aria-label={`Eliminar ${categoria.nombre}`}>
-          <DeleteOutlinedIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-    </Box>
-  );
+  // editar y eliminar solo aparecen si la pantalla los permite (administrador)
+  const acciones = (categoria) =>
+    onEditar && (
+      <Box sx={{ display: "flex", flexShrink: 0 }}>
+        <Tooltip title="Editar">
+          <IconButton size="small" onClick={() => onEditar(categoria)} aria-label={`Editar ${categoria.nombre}`}>
+            <EditOutlinedIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Eliminar">
+          <IconButton size="small" onClick={() => onEliminar(categoria)} aria-label={`Eliminar ${categoria.nombre}`}>
+            <DeleteOutlinedIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box>
+    );
 
   if (visibles.length === 0) {
     return (

@@ -9,8 +9,9 @@ import PasswordField from "../../components/molecules/PasswordField/PasswordFiel
 import Notice from "../../components/molecules/Notice/Notice";
 import AddressSection from "../../components/organisms/AddressSection/AddressSection";
 import PhoneSection from "../../components/organisms/PhoneSection/PhoneSection";
+import EmailSection from "../../components/organisms/EmailSection/EmailSection";
 import useUser from "../../contexts/UserContext/useUser";
-import { actualizarPerfil, cambiarClave, obtenerUsuarios } from "../../services/userService";
+import { actualizarPerfil, cambiarClave, revisarDisponibilidad } from "../../services/userService";
 import { obtenerCompanias } from "../../services/companyService";
 import {
   calcularEdad,
@@ -28,14 +29,12 @@ const tarjeta = { p: 3, borderRadius: 1.5, borderColor: "text.primary" };
 
 const UserProfileScreen = () => {
   const { usuario, actualizarUsuarioSesion } = useUser();
-  const [usuarios, setUsuarios] = useState([]);
   const [companias, setCompanias] = useState([]);
 
   useEffect(() => {
     const cargar = async () => {
-      const [respuestaUsuarios, respuestaCompanias] = await Promise.all([obtenerUsuarios(), obtenerCompanias()]);
-      if (respuestaUsuarios.ok) setUsuarios(respuestaUsuarios.datos);
-      if (respuestaCompanias.ok) setCompanias(respuestaCompanias.datos);
+      const respuesta = await obtenerCompanias();
+      if (respuesta.ok) setCompanias(respuesta.datos);
     };
     cargar();
   }, []);
@@ -69,8 +68,10 @@ const UserProfileScreen = () => {
     if (perfil.fechaNacimiento && errorFechaNacimiento(perfil.fechaNacimiento))
       e.fechaNacimiento = errorFechaNacimiento(perfil.fechaNacimiento);
     if (!correoValido(perfil.correo)) e.correo = "Correo no válido.";
-    else if (usuarios.some((u) => u.id !== usuario.id && u.correo.toLowerCase() === perfil.correo.toLowerCase()))
-      e.correo = "Este correo ya pertenece a otra persona.";
+    else if (perfil.correo.trim().toLowerCase() !== (usuario.correo ?? "").toLowerCase()) {
+      const respuesta = await revisarDisponibilidad({ correos: [perfil.correo] });
+      if (respuesta.ok && respuesta.datos.correosOcupados.length > 0) e.correo = "Este correo ya pertenece a otra persona.";
+    }
     setErrores(e);
     if (Object.keys(e).length > 0) return;
 
@@ -232,6 +233,7 @@ const UserProfileScreen = () => {
             <AddressSection usuarioId={usuario.id} onAviso={setAviso} />
 
             <PhoneSection usuarioId={usuario.id} onAviso={setAviso} />
+            <EmailSection usuarioId={usuario.id} correoPrincipal={usuario.correo} onAviso={setAviso} />
 
             <Paper variant="outlined" component="form" onSubmit={guardarClave} noValidate sx={tarjeta}>
               <Typography variant="h3" sx={{ mb: 2 }}>

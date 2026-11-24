@@ -48,15 +48,34 @@ if (string.IsNullOrWhiteSpace(cadenaConexion))
     throw new InvalidOperationException("Falta la conexión a la base. Copia .env.example como .env y completa ConnectionStrings__Default.");
 // secreto con el que se firman los tokens de sesion (Auth__Secreto en el .env)
 Tokens.Configurar(builder.Configuration["Auth:Secreto"]);
+// porcentaje con que se reajusta cada semana una cotizacion expirada
+ReglasCotizacion.Configurar(builder.Configuration.GetValue<decimal?>("Cotizaciones:ReajusteSemanal"));
 builder.Services.AddDbContext<AppDbContext>(opciones => opciones.UseNpgsql(cadenaConexion));
 
+// paginas que pueden llamar a la API desde otra direccion (el frontend con npm run dev); se agregan mas en el .env con Cors__Origenes__N
 var origenes = builder.Configuration.GetSection("Cors:Origenes").Get<string[]>() ?? new string[0];
+if (origenes.Length == 0) origenes = new[] { "http://localhost:5173", "http://127.0.0.1:5173" };
 builder.Services.AddCors(opciones =>
 {
-    opciones.AddPolicy("Frontend", politica => politica.WithOrigins(origenes).AllowAnyHeader().AllowAnyMethod());
+    // ademas de las del .env, se acepta el frontend abierto desde este computador o desde la red local
+    // (por ejemplo http://192.168.100.20:5173), asi funciona aunque cambie la IP del computador
+    opciones.AddPolicy("Frontend", politica => politica
+        .SetIsOriginAllowed(origen => origenes.Contains(origen) || Red.EsLocal(origen))
+        .AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("WWW-Authenticate"));
 });
 
 var app = builder.Build();
+
+// "dotnet run -- migrar" crea las tablas en una base vacia con las migraciones de la carpeta Migrations
+// (en la Raspberry la base se crea con los scripts de database/, que dejan las mismas tablas y ademas cargan los datos de prueba)
+if (args.Contains("migrar"))
+{
+    using var alcance = app.Services.CreateScope();
+    var baseDatos = alcance.ServiceProvider.GetRequiredService<AppDbContext>();
+    baseDatos.Database.Migrate();
+    Console.WriteLine("Migraciones aplicadas: " + string.Join(", ", baseDatos.Database.GetAppliedMigrations()));
+    return;
+}
 
 // cualquier error no controlado responde 500 sin mostrar detalles
 app.UseExceptionHandler(errApp => errApp.Run(async ctx =>
@@ -87,36 +106,68 @@ app.Use(async (contexto, siguiente) =>
     var metodo = contexto.Request.Method.ToUpperInvariant();
     if (!ruta.StartsWith("/api") || metodo == "OPTIONS") { await siguiente(); return; }
 
-    var publica = (metodo == "POST" && (ruta == "/api/login" || ruta == "/api/usuarios/registro"))
-        || (metodo == "GET" && (ruta == "/api/usuarios" || ruta == "/api/companias" || ruta == "/api/categorias"));
+    var publica = (metodo == "POST" && (ruta == "/api/login" || ruta == "/api/usuarios/registro" || ruta == "/api/usuarios/disponibilidad"))
+        || (metodo == "GET" && (ruta == "/api" || ruta == "/api/categorias" || ruta.StartsWith("/api/fotos/")));
     if (publica) { await siguiente(); return; }
 
     var cabecera = contexto.Request.Headers.Authorization.ToString();
     var token = cabecera.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? cabecera.Substring(7).Trim() : "";
     if (!Tokens.TryLeer(token, out var usuarioId, out var roles))
     {
+        // con esta cabecera el frontend sabe que tiene que volver al login
+        contexto.Response.Headers["WWW-Authenticate"] = "Bearer";
         contexto.Response.StatusCode = 401;
         await contexto.Response.WriteAsJsonAsync(RespuestaApi.Error("Sesión no válida o vencida. Vuelve a iniciar sesión."));
         return;
     }
 
+    var esAdmin = roles.Contains("Admin");
+
     // solo el administrador puede usar estas rutas
     var soloAdmin = ruta == "/api/reportes/plataforma"
+        || (metodo == "GET" && ruta == "/api/usuarios")
         || (metodo == "PUT" && ruta.EndsWith("/clave/restablecer"))
         || (metodo == "POST" && ruta == "/api/usuarios")
         || (metodo == "DELETE" && ruta.StartsWith("/api/usuarios/"))
-        || (metodo != "GET" && (ruta == "/api/companias" || ruta.StartsWith("/api/companias/")
-                              || ruta == "/api/categorias" || ruta.StartsWith("/api/categorias/")));
-    if (soloAdmin && !roles.Contains("Admin"))
+        || (metodo != "GET" && (ruta == "/api/companias" || ruta.StartsWith("/api/companias/")))
+        || ((metodo == "PUT" || metodo == "DELETE") && ruta.StartsWith("/api/categorias/"));
+    if (soloAdmin && !esAdmin)
     {
         contexto.Response.StatusCode = 403;
         await contexto.Response.WriteAsJsonAsync(RespuestaApi.Error("No tienes permiso para realizar esta acción."));
         return;
     }
 
+    // crear categorias lo pueden hacer el administrador y los emprendedores (cuando falta una para su producto)
+    if (metodo == "POST" && ruta == "/api/categorias" && !esAdmin && !roles.Contains("Vendedor"))
+    {
+        contexto.Response.StatusCode = 403;
+        await contexto.Response.WriteAsJsonAsync(RespuestaApi.Error("Solo los emprendedores y el administrador pueden crear categorías."));
+        return;
+    }
+
+    // cada persona solo ve o cambia sus propios datos (el administrador puede todo)
+    if (!esAdmin && !Permisos.EsDelUsuario(ruta, metodo, usuarioId))
+    {
+        contexto.Response.StatusCode = 403;
+        await contexto.Response.WriteAsJsonAsync(RespuestaApi.Error("No puedes ver ni cambiar datos de otra persona."));
+        return;
+    }
+
+    // los controladores revisan con esto que el registro (producto, venta, oferta...) sea de quien llama
     contexto.Items["usuarioId"] = usuarioId;
+    contexto.Items["roles"] = roles;
     await siguiente();
 });
+
+// mensaje de bienvenida para revisar desde Postman que la API esta funcionando
+var bienvenida = RespuestaApi.Exito("API de Compra y Venta", new
+{
+    instrucciones = "Primero inicia sesión con POST /api/login y usa el token como Bearer. Ejemplo: GET http://localhost:5000/api/categorias"
+});
+app.MapGet("/api", () => Results.Ok(bienvenida));
+// si no esta compilada la pagina en wwwroot, la raiz muestra el mismo mensaje
+app.MapGet("/", () => Results.Ok(bienvenida));
 
 app.MapControllers();
 app.MapFallbackToFile("{*ruta:regex(^(?!api/).*$):nonfile}", "index.html");

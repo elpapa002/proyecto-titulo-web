@@ -81,7 +81,7 @@ namespace CompraVenta.Api.Controllers
 
             _context.Companias.Remove(compania);
             await _context.SaveChangesAsync();
-            return NoContent();
+            return Ok(RespuestaApi.Exito("Compañía eliminada correctamente.", null));
         }
 
         private static List<string> ValidarCompania(CompaniaCrearDto datos)

@@ -25,3 +25,12 @@ dist-ssr
 
 # variables de entorno con claves
 .env
+.env.*
+!.env.example
+appsettings.Development.json
+appsettings.Local.json
+
+# compilados de .NET
+bin/
+obj/
+*.user

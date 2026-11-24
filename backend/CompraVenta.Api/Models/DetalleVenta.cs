@@ -14,6 +14,9 @@ namespace CompraVenta.Api.Models
         [Column("producto_id")]
         public int? ProductoId { get; set; }
 
+        [Column("variante_id")]
+        public int? VarianteId { get; set; }
+
         [Column("nombre")]
         public string Nombre { get; set; }
 

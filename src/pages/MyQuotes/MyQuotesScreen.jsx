@@ -11,6 +11,7 @@ import InfoHint from "../../components/molecules/InfoHint/InfoHint";
 import Notice from "../../components/molecules/Notice/Notice";
 import useUser from "../../contexts/UserContext/useUser";
 import {
+  DIAS_PARA_ELIMINAR,
   DIAS_VIGENCIA,
   cambiarEstadoCotizacion,
   eliminarCotizacion,
@@ -24,7 +25,7 @@ const filtros = [
   { valor: "Respondida", texto: "Respondidas" },
   { valor: "Aceptada", texto: "Aceptadas" },
   { valor: "Rechazada", texto: "Rechazadas" },
-  { valor: "Vencida", texto: "Vencidas" },
+  { valor: "Expirada", texto: "Expiradas" },
 ];
 
 const MyQuotesScreen = () => {
@@ -105,7 +106,7 @@ const MyQuotesScreen = () => {
       </Box>
 
       <InfoHint
-        texto={`Los valores que te da el emprendedor se respetan durante ${DIAS_VIGENCIA} días desde su respuesta. Después la cotización queda vencida y tienes que pedir una nueva.`}
+        texto={`Los valores que te da el emprendedor se respetan durante ${DIAS_VIGENCIA} días desde su respuesta. Después la cotización pasa a "Expirada": su precio se reajusta cada semana y se elimina a los ${DIAS_PARA_ELIMINAR} días.`}
         sx={{ mb: 2 }}
       />
 
@@ -130,7 +131,7 @@ const MyQuotesScreen = () => {
         mensaje={
           decision
             ? aceptando
-              ? `Vas a aceptar la cotización N° ${decision.cotizacion.id} de ${decision.cotizacion.tienda} por ${formatearPrecio(decision.cotizacion.respuesta.total)}. El emprendedor recibirá un aviso para coordinar la compra.`
+              ? `Vas a aceptar la cotización N° ${decision.cotizacion.id} de ${decision.cotizacion.tienda} por ${formatearPrecio(decision.cotizacion.respuesta.totalReajustado ?? decision.cotizacion.respuesta.total)}${decision.cotizacion.respuesta.totalReajustado ? " (precio reajustado)" : ""}. El emprendedor recibirá un aviso para coordinar la compra.`
               : `Vas a rechazar la cotización N° ${decision.cotizacion.id} de ${decision.cotizacion.tienda}. Esta acción no se puede deshacer.`
             : ""
         }

@@ -6,6 +6,9 @@ namespace CompraVenta.Api.DTOs
     {
         public int? ProductoId { get; set; }
 
+        // obligatorio cuando el producto tiene variantes (talla o color)
+        public int? VarianteId { get; set; }
+
         public string Nombre { get; set; }
 
         [Range(1, 1000, ErrorMessage = "La cantidad de cada producto debe estar entre 1 y 1000.")]

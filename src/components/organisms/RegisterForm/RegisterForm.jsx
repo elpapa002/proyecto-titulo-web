@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Box, Stack } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import CustomButton from "../../atoms/Button/CustomButton";
@@ -7,9 +7,8 @@ import PersonalStep from "../PersonalStep/PersonalStep";
 import ContactStep from "../ContactStep/ContactStep";
 import CompanyStep from "../CompanyStep/CompanyStep";
 import { registrarUsuario } from "../../../services/authService";
-import { obtenerUsuarios } from "../../../services/userService";
-import { obtenerCompanias } from "../../../services/companyService";
-import { formatearRut, formatearRutEscritura, limpiarRut, validarRut } from "../../../utils/rut";
+import { revisarDisponibilidad } from "../../../services/userService";
+import { formatearRut, formatearRutEscritura, validarRut } from "../../../utils/rut";
 import { calcularEdad, correoValido, errorFechaNacimiento, soloLetras } from "../../../utils/formato";
 import { ocultarClaves } from "../../../utils/clave";
 
@@ -42,18 +41,7 @@ const RegisterForm = ({ paso, setPaso }) => {
   const [errores, setErrores] = useState({});
   const [aviso, setAviso] = useState("");
   const [enviando, setEnviando] = useState(false);
-  const [usuarios, setUsuarios] = useState([]);
-  const [companias, setCompanias] = useState([]);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const cargar = async () => {
-      const [respuestaUsuarios, respuestaCompanias] = await Promise.all([obtenerUsuarios(), obtenerCompanias()]);
-      if (respuestaUsuarios.ok) setUsuarios(respuestaUsuarios.datos);
-      if (respuestaCompanias.ok) setCompanias(respuestaCompanias.datos);
-    };
-    cargar();
-  }, []);
 
   const quitarError = (clave) => setErrores((actuales) => ({ ...actuales, [clave]: undefined }));
 
@@ -98,7 +86,6 @@ const RegisterForm = ({ paso, setPaso }) => {
   const validarPaso1 = () => {
     const e = {};
     if (!validarRut(datos.run)) e.run = "RUN no válido. Revisa el dígito verificador.";
-    else if (usuarios.some((u) => limpiarRut(u.run) === limpiarRut(datos.run))) e.run = "Este RUN ya tiene una cuenta.";
     const errorFecha = errorFechaNacimiento(datos.fechaNacimiento);
     if (errorFecha) e.fechaNacimiento = errorFecha;
     if (datos.nombres.trim().length < 2) e.nombres = "Ingresa tus nombres, solo letras.";
@@ -111,12 +98,9 @@ const RegisterForm = ({ paso, setPaso }) => {
 
   const validarPaso2 = () => {
     const e = {};
-    const correosUsados = usuarios.map((u) => u.correo.toLowerCase());
     datos.contactos.forEach((c, i) => {
       if (i === 0 && !c.correo) e.correo0 = "Ingresa un correo.";
       else if (c.correo && !correoValido(c.correo)) e[`correo${i}`] = "Correo no válido.";
-      else if (c.correo && correosUsados.includes(c.correo.toLowerCase()))
-        e[`correo${i}`] = "Este correo ya pertenece a otra persona.";
       if (c.telefono && c.telefono.replace(/\D/g, "").length < 8) e[`telefono${i}`] = "Teléfono muy corto.";
     });
     const principal = datos.direcciones[0];
@@ -129,7 +113,6 @@ const RegisterForm = ({ paso, setPaso }) => {
     const e = {};
     const emp = datos.empresa;
     if (!validarRut(emp.rut)) e.rut = "RUT no válido. Revisa el dígito verificador.";
-    else if (companias.some((c) => limpiarRut(c.rut) === limpiarRut(emp.rut))) e.rut = "Esta empresa ya está registrada.";
     if (!emp.nombre.trim()) e.nombre = "Ingresa el nombre de la empresa.";
     if (!(Number(emp.personas) >= 1)) e.personas = "Debe ser 1 o más.";
     if (emp.telefono.replace(/\D/g, "").length < 8) e.telefono = "Ingresa un teléfono válido.";
@@ -171,11 +154,38 @@ const RegisterForm = ({ paso, setPaso }) => {
     navigate("/login", { state: { mensaje: "Cuenta creada. Ahora inicia sesión con tu RUN y tu clave." } });
   };
 
-  const enviar = (evento) => {
+  // el backend dice si el RUN, los correos o el RUT de la empresa ya estan usados por otra cuenta
+  const revisarRepetidos = async () => {
+    const e = {};
+    const consulta =
+      paso === 1
+        ? { run: formatearRut(datos.run) }
+        : paso === 2
+          ? { correos: datos.contactos.map((c) => c.correo).filter(Boolean) }
+          : { rutEmpresa: formatearRut(datos.empresa.rut) };
+    const respuesta = await revisarDisponibilidad(consulta);
+    if (!respuesta.ok) return e;
+    const { runOcupado, correosOcupados, rutEmpresaOcupado } = respuesta.datos;
+    if (paso === 1 && runOcupado) e.run = "Este RUN ya tiene una cuenta.";
+    if (paso === 2)
+      datos.contactos.forEach((c, i) => {
+        if (c.correo && correosOcupados.includes(c.correo.trim().toLowerCase()))
+          e[`correo${i}`] = "Este correo ya pertenece a otra persona.";
+      });
+    if (paso === 3 && rutEmpresaOcupado) e.rut = "Esta empresa ya está registrada.";
+    return e;
+  };
+
+  const enviar = async (evento) => {
     evento.preventDefault();
     const accion = evento.nativeEvent.submitter?.value;
     const validaciones = { 1: validarPaso1, 2: validarPaso2, 3: validarPaso3 };
-    const nuevosErrores = validaciones[paso]();
+    let nuevosErrores = validaciones[paso]();
+    if (Object.keys(nuevosErrores).length === 0) {
+      setEnviando(true);
+      nuevosErrores = await revisarRepetidos();
+      setEnviando(false);
+    }
     setErrores(nuevosErrores);
     if (Object.keys(nuevosErrores).length > 0) return;
 

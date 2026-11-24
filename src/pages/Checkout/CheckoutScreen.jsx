@@ -8,7 +8,7 @@ import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import PageHeader from "../../components/organisms/PageHeader/PageHeader";
 import CheckoutSteps from "../../components/organisms/CheckoutSteps/CheckoutSteps";
-import CheckoutShipping from "../../components/organisms/CheckoutShipping/CheckoutShipping";
+import CheckoutShipping, { RETIRO } from "../../components/organisms/CheckoutShipping/CheckoutShipping";
 import CheckoutPayment from "../../components/organisms/CheckoutPayment/CheckoutPayment";
 import PurchaseSummary from "../../components/organisms/PurchaseSummary/PurchaseSummary";
 import PurchaseReceipt from "../../components/organisms/PurchaseReceipt/PurchaseReceipt";
@@ -17,7 +17,7 @@ import CustomButton from "../../components/atoms/Button/CustomButton";
 import StatusChip from "../../components/atoms/StatusChip/StatusChip";
 import useUser from "../../contexts/UserContext/useUser";
 import { obtenerDirecciones } from "../../services/direccionService";
-import { calcularEnvio } from "../../services/envioService";
+import { calcularEnvio, enKilos, obtenerConfiguracionEnvio } from "../../services/envioService";
 import { crearVenta } from "../../services/ventaService";
 import { formatearPrecio } from "../../utils/formato";
 
@@ -33,6 +33,7 @@ const CheckoutScreen = () => {
   const [cargandoDirecciones, setCargandoDirecciones] = useState(true);
   const [direccionId, setDireccionId] = useState(null);
   const [envios, setEnvios] = useState({});
+  const [configuracion, setConfiguracion] = useState(null);
   const [pago, setPago] = useState({ tipo: "", marca: "", ultimos4: "", acepto: false });
   const [errores, setErrores] = useState({});
   const [errorPago, setErrorPago] = useState("");
@@ -41,9 +42,12 @@ const CheckoutScreen = () => {
   const [aviso, setAviso] = useState("");
 
   const vendedorId = carro[0]?.vendedorId;
+  const retiro = direccionId === RETIRO;
   const direccion = direcciones.find((d) => d.id === direccionId);
   const comuna = direccion?.comuna;
   const envio = comuna ? envios[comuna] : undefined;
+  // peso total del carro, para los emprendedores que cobran segun el peso
+  const kilos = carro.reduce((suma, item) => suma + enKilos(item.peso) * item.cantidad, 0);
 
   useEffect(() => {
     const cargar = async () => {
@@ -61,17 +65,27 @@ const CheckoutScreen = () => {
   }, [usuario.id]);
 
   useEffect(() => {
+    if (!vendedorId) return;
+    const cargar = async () => {
+      const respuesta = await obtenerConfiguracionEnvio(vendedorId);
+      if (respuesta.ok) setConfiguracion(respuesta.datos);
+    };
+    cargar();
+  }, [vendedorId]);
+
+  useEffect(() => {
     if (!comuna || !vendedorId || envios[comuna]) return;
     const calcular = async () => {
-      const respuesta = await calcularEnvio(vendedorId, comuna);
+      const respuesta = await calcularEnvio(vendedorId, comuna, kilos);
       setEnvios((actuales) => ({ ...actuales, [comuna]: respuesta }));
     };
     calcular();
-  }, [comuna, vendedorId, envios]);
+  }, [comuna, vendedorId, envios, kilos]);
 
   const unidades = carro.reduce((suma, item) => suma + item.cantidad, 0);
   const subtotal = carro.reduce((suma, item) => suma + item.precio * item.cantidad, 0);
-  const costoEnvio = envio?.ok ? envio.datos.costo : 0;
+  const costoEnvio = !retiro && envio?.ok ? envio.datos.costo : 0;
+  const puedeSeguir = retiro || envio?.ok;
   const total = subtotal + costoEnvio;
   const neto = Math.round(total / 1.19);
   const iva = total - neto;
@@ -115,15 +129,19 @@ const CheckoutScreen = () => {
       vendedorId,
       items: carro.map((item) => ({
         productoId: item.productoId,
-        nombre: item.nombre,
+        varianteId: item.varianteId ?? null,
+        nombre: item.variante ? `${item.nombre} (${item.variante})` : item.nombre,
         cantidad: item.cantidad,
         precio: item.precio,
       })),
       envio: costoEnvio,
       total,
       medioPago: { tipo: pago.tipo, marca: pago.marca, ultimos4: pago.ultimos4 },
-      direccion: `${direccion.calle} ${direccion.numero}, ${direccion.comuna}`,
-      comuna: direccion.comuna,
+      direccion: retiro
+        ? `Retiro en el local: ${configuracion.direccionRetiro}`
+        : `${direccion.calle} ${direccion.numero}, ${direccion.comuna}`,
+      comuna: retiro ? "" : direccion.comuna,
+      retiro,
     };
     console.log("Datos de la compra:", datosVenta);
 
@@ -171,7 +189,9 @@ const CheckoutScreen = () => {
               </Typography>
               <Typography sx={{ mt: 1 }}>
                 Tu pedido N° {venta.id} a {venta.tienda} quedó registrado en estado "{venta.estadoPedido}".
-                {envio?.ok &&
+                {retiro && ` Retírala en ${configuracion.direccionRetiro}.`}
+                {!retiro &&
+                  envio?.ok &&
                   ` Llega en ${envio.datos.dias === 1 ? "1 día hábil" : `${envio.datos.dias} días hábiles`} aprox.`}{" "}
                 Te avisaremos cada vez que cambie de estado.
               </Typography>
@@ -220,7 +240,8 @@ const CheckoutScreen = () => {
   if (direccion && !envio) valorEnvio = "Calculando...";
   if (envio?.ok) valorEnvio = formatearPrecio(costoEnvio);
   if (envio && !envio.ok) valorEnvio = "Sin despacho";
-  const filaEnvio = { texto: comuna ? `Despacho a ${comuna}` : "Despacho", valor: valorEnvio };
+  if (retiro) valorEnvio = "Gratis";
+  const filaEnvio = { texto: retiro ? "Retiro en el local" : comuna ? `Despacho a ${comuna}` : "Despacho", valor: valorEnvio };
 
   if (paso === 2) {
     return (
@@ -236,17 +257,19 @@ const CheckoutScreen = () => {
               onElegir={setDireccionId}
               envio={envio}
               tienda={tienda}
+              configuracion={configuracion}
+              kilos={kilos}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
             <PurchaseSummary filas={[filaProductos, filaEnvio]} total={{ texto: "Total", valor: formatearPrecio(total) }}>
-              <CustomButton fullWidth disabled={!envio?.ok} onClick={() => irAPaso(3)} sx={deshabilitado}>
+              <CustomButton fullWidth disabled={!puedeSeguir} onClick={() => irAPaso(3)} sx={deshabilitado}>
                 Continuar al pago
               </CustomButton>
               <CustomButton tono="contorno" fullWidth onClick={() => navigate("/tienda/carro")}>
                 Volver al carro
               </CustomButton>
-              {!envio?.ok && (
+              {!puedeSeguir && (
                 <Typography variant="body2">Para continuar elige una dirección donde este emprendedor despache.</Typography>
               )}
             </PurchaseSummary>
@@ -260,7 +283,14 @@ const CheckoutScreen = () => {
   return (
     <Box component="form" noValidate onSubmit={pagar}>
       <CheckoutSteps actual={3} esMovil={esMovil} />
-      <PageHeader titulo="Pago" subtitulo={`Compra a ${tienda} con despacho a ${direccion.calle} ${direccion.numero}, ${direccion.comuna}.`} />
+      <PageHeader
+        titulo="Pago"
+        subtitulo={
+          retiro
+            ? `Compra a ${tienda} con retiro en ${configuracion.direccionRetiro}.`
+            : `Compra a ${tienda} con despacho a ${direccion.calle} ${direccion.numero}, ${direccion.comuna}.`
+        }
+      />
       <Grid container spacing={3} sx={{ alignItems: "flex-start" }}>
         <Grid size={{ xs: 12, md: 8 }}>
           <Stack spacing={2}>

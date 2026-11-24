@@ -7,6 +7,7 @@ import CustomButton from "../../atoms/Button/CustomButton";
 import FormField from "../../molecules/FormField/FormField";
 import SelectField from "../../molecules/SelectField/SelectField";
 import { comunas } from "../../../services/datosPrueba";
+import { RESTO_REGION } from "../../../services/envioService";
 import { formatearPrecio } from "../../../utils/formato";
 
 const COSTO_MAXIMO = 50000;
@@ -26,7 +27,11 @@ const ShippingFormDialog = ({ costo, costos, onCerrar, onGuardar }) => {
   const [guardando, setGuardando] = useState(false);
 
   const usadas = costos.filter((c) => c.id !== costo?.id).map((c) => c.comuna);
-  const opciones = comunas.map((c) => ({ valor: c, texto: usadas.includes(c) ? `${c} (ya agregada)` : c }));
+  // "Resto de la región" cubre todas las comunas que no estan en la lista
+  const opciones = [...comunas, RESTO_REGION].map((c) => ({
+    valor: c,
+    texto: `${c === RESTO_REGION ? `${c} (todas las demás comunas)` : c}${usadas.includes(c) ? " (ya agregada)" : ""}`,
+  }));
 
   const costoEscrito = datos.costo.trim();
   const diasEscritos = datos.dias.trim();

@@ -47,6 +47,7 @@ namespace CompraVenta.Api.Controllers
         {
             var notificacion = await _context.Notificaciones.FindAsync(id);
             if (notificacion is null) return NotFound(RespuestaApi.Error("Notificación no encontrada."));
+            if (!this.Puede(notificacion.UsuarioId)) return this.SinPermiso();
 
             notificacion.Leida = datos.Leida;
             await _context.SaveChangesAsync();
@@ -58,10 +59,11 @@ namespace CompraVenta.Api.Controllers
         {
             var notificacion = await _context.Notificaciones.FindAsync(id);
             if (notificacion is null) return NotFound(RespuestaApi.Error("Notificación no encontrada."));
+            if (!this.Puede(notificacion.UsuarioId)) return this.SinPermiso();
 
             _context.Notificaciones.Remove(notificacion);
             await _context.SaveChangesAsync();
-            return NoContent();
+            return Ok(RespuestaApi.Exito("Aviso eliminado correctamente.", null));
         }
     }
 }

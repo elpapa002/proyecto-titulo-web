@@ -6,7 +6,13 @@ import ProductForm from "../../components/organisms/ProductForm/ProductForm";
 import CustomButton from "../../components/atoms/Button/CustomButton";
 import Notice from "../../components/molecules/Notice/Notice";
 import useUser from "../../contexts/UserContext/useUser";
-import { actualizarProducto, crearProducto, obtenerMisProductos } from "../../services/productService";
+import {
+  actualizarProducto,
+  crearProducto,
+  eliminarFoto,
+  obtenerMisProductos,
+  subirFoto,
+} from "../../services/productService";
 import { obtenerCategorias } from "../../services/catalogService";
 
 const ProductFormScreen = () => {
@@ -35,12 +41,27 @@ const ProductFormScreen = () => {
   const producto = id ? productos.find((p) => p.id === Number(id)) : null;
   const volver = () => navigate("/mi-tienda/publicaciones");
 
-  const guardar = async (datos) => {
+  const guardar = async (datos, fotos) => {
     const respuesta = producto
       ? await actualizarProducto(producto.id, datos)
       : await crearProducto({ ...datos, vendedorId: usuario.id });
     if (!respuesta.ok) {
       setAviso(respuesta.error ?? "No se pudo guardar. Intenta de nuevo.");
+      return;
+    }
+    // primero se quitan las fotos borradas (asi hay espacio para las nuevas) y despues se suben las nuevas
+    const productoId = respuesta.datos.id;
+    const errores = [];
+    for (const id of fotos.borradas) {
+      const r = await eliminarFoto(id);
+      if (!r.ok) errores.push(r.error);
+    }
+    for (const foto of fotos.nuevas) {
+      const r = await subirFoto(productoId, foto);
+      if (!r.ok) errores.push(`${foto.nombre}: ${r.error}`);
+    }
+    if (errores.length > 0) {
+      setAviso(`La publicación se guardó, pero hubo un problema con las fotos. ${errores[0]}`);
       return;
     }
     const texto = producto ? "Publicación actualizada" : datos.estado === "Borrador" ? "Borrador guardado" : "Publicación creada";

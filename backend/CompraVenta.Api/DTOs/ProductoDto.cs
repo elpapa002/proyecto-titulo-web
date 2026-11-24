@@ -24,5 +24,10 @@ namespace CompraVenta.Api.DTOs
         public string Tienda { get; set; }
         public int? PrecioOferta { get; set; }
         public string FinOferta { get; set; }
+        public string TextoAlternativo { get; set; }
+        public List<VarianteDto> Variantes { get; set; }
+        public List<FotoDto> Fotos { get; set; }
+        // productos que el emprendedor eligio como relacionados
+        public List<int> Relacionados { get; set; }
     }
 }

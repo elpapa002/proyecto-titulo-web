@@ -56,6 +56,10 @@ namespace CompraVenta.Api.Models
         [Column("calificada")]
         public bool Calificada { get; set; }
 
+        // true cuando el cliente retira en el local del emprendedor (sin costo de envio)
+        [Column("retiro")]
+        public bool Retiro { get; set; }
+
         [ForeignKey("VentaId")]
         public List<DetalleVenta> Detalles { get; set; } = new List<DetalleVenta>();
     }

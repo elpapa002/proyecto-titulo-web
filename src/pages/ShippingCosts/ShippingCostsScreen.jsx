@@ -8,6 +8,7 @@ import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined
 import PageHeader from "../../components/organisms/PageHeader/PageHeader";
 import ShippingTable from "../../components/organisms/ShippingTable/ShippingTable";
 import ShippingFormDialog from "../../components/organisms/ShippingFormDialog/ShippingFormDialog";
+import ShippingSettings from "../../components/organisms/ShippingSettings/ShippingSettings";
 import DeleteDialog from "../../components/organisms/DeleteDialog/DeleteDialog";
 import CustomButton from "../../components/atoms/Button/CustomButton";
 import StatCard from "../../components/molecules/StatCard/StatCard";
@@ -17,6 +18,9 @@ import {
   actualizarCostoEnvio,
   crearCostoEnvio,
   eliminarCostoEnvio,
+  RESTO_REGION,
+  guardarConfiguracionEnvio,
+  obtenerConfiguracionEnvio,
   obtenerCostosEnvio,
 } from "../../services/envioService";
 import { comunas } from "../../services/datosPrueba";
@@ -33,6 +37,27 @@ const ShippingCostsScreen = () => {
   const [formulario, setFormulario] = useState(null);
   const [aBorrar, setABorrar] = useState(null);
   const [aviso, setAviso] = useState("");
+  const [configuracion, setConfiguracion] = useState(null);
+
+  useEffect(() => {
+    const cargar = async () => {
+      const respuesta = await obtenerConfiguracionEnvio(usuario.id);
+      if (respuesta.ok) setConfiguracion(respuesta.datos);
+      else setAviso(respuesta.error ?? "No se pudo cargar la configuración de envío.");
+    };
+    cargar();
+  }, [usuario.id]);
+
+  const guardarConfiguracion = async (datos) => {
+    console.log("Configuración de envío:", { vendedorId: usuario.id, ...datos });
+    const respuesta = await guardarConfiguracionEnvio(usuario.id, datos);
+    if (!respuesta.ok) {
+      setAviso(respuesta.error ?? "No se pudo guardar la configuración.");
+      return;
+    }
+    setConfiguracion(respuesta.datos);
+    setAviso("Configuración de envío guardada");
+  };
 
   useEffect(() => {
     const cargar = async () => {
@@ -54,8 +79,10 @@ const ShippingCostsScreen = () => {
     {
       icono: <PlaceOutlinedIcon fontSize="small" />,
       titulo: "Comunas con despacho",
-      valor: costos.length,
-      detalle: `De ${comunas.length} comunas disponibles`,
+      valor: costos.filter((c) => c.comuna !== RESTO_REGION).length,
+      detalle: costos.some((c) => c.comuna === RESTO_REGION)
+        ? "Y el resto de la región con otra tarifa"
+        : `De ${comunas.length} comunas disponibles`,
     },
     {
       icono: <PaymentsOutlinedIcon fontSize="small" />,
@@ -107,7 +134,7 @@ const ShippingCostsScreen = () => {
     <>
       <PageHeader
         titulo="Costos de envío"
-        subtitulo="Define cuánto cobras por despacho a cada comuna y en cuántos días llega."
+        subtitulo="Cobra por comuna o región, o según el peso del pedido. También puedes permitir el retiro en tu local."
         acciones={
           <CustomButton startIcon={<AddIcon />} onClick={() => setFormulario({ costo: null })}>
             Agregar comuna
@@ -121,10 +148,17 @@ const ShippingCostsScreen = () => {
       >
         <InfoOutlinedIcon fontSize="small" sx={{ mt: 0.25 }} />
         <Typography>
-          Los clientes de comunas que no estén en la lista no podrán comprarte. Si no cobras el despacho a una
-          comuna, deja el costo en $0 y se mostrará como gratis.
+          Los clientes de comunas que no estén en la lista no podrán comprarte, salvo que agregues "Resto de la región"
+          para todas las demás comunas. Si no cobras el despacho a una comuna, deja el costo en $0 y se mostrará como
+          gratis.
         </Typography>
       </Paper>
+
+      {configuracion ? (
+        <ShippingSettings configuracion={configuracion} onGuardar={guardarConfiguracion} />
+      ) : (
+        <Typography sx={{ mb: 3 }}>Cargando la configuración de envío...</Typography>
+      )}
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {tarjetas.map((tarjeta) => (

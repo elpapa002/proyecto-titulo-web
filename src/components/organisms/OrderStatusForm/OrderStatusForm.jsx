@@ -27,7 +27,8 @@ const OrderStatusForm = ({ venta, onGuardar }) => {
   const opciones = bloqueado
     ? [actual]
     : [...ORDEN.slice(ORDEN.indexOf(actual)), "Cancelado"];
-  const pideDespacho = conDespacho(datos.estadoPedido);
+  // si el cliente retira en el local no hay empresa de transporte ni seguimiento
+  const pideDespacho = !venta.retiro && conDespacho(datos.estadoPedido);
 
   const cambiar = (e) => {
     const { name, value } = e.target;
@@ -46,7 +47,7 @@ const OrderStatusForm = ({ venta, onGuardar }) => {
     else if (nuevo !== "Cancelado" && ORDEN.indexOf(nuevo) < ORDEN.indexOf(actual))
       e.estadoPedido = "No puedes volver a un estado anterior.";
     else if (sinCambios) e.estadoPedido = "No hay cambios para guardar.";
-    if (conDespacho(nuevo)) {
+    if (!venta.retiro && conDespacho(nuevo)) {
       const seguimiento = datos.seguimiento.trim();
       if (!datos.empresaTransporte) e.empresaTransporte = "Elige la empresa de transporte.";
       if (!seguimiento) e.seguimiento = "Ingresa el número de seguimiento.";

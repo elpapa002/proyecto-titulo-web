@@ -1,7 +1,8 @@
 -- Compra y Venta: creación de tablas
 
 DROP TABLE IF EXISTS notificacion, mensaje, devolucion, calificacion, detalle_cotizacion, cotizacion, pregunta,
-    detalle_venta, venta, costo_envio, oferta, producto, categoria, telefono, direccion, usuario, compania CASCADE;
+    detalle_venta, venta, configuracion_envio, costo_envio, oferta, producto_relacionado, foto, variante, producto, categoria,
+    correo_adicional, telefono, direccion, usuario, compania CASCADE;
 
 CREATE TABLE compania (
     id SERIAL PRIMARY KEY,
@@ -46,6 +47,13 @@ CREATE TABLE telefono (
     numero VARCHAR(20) NOT NULL UNIQUE
 );
 
+-- correos extra de una persona; cada correo puede pertenecer a una sola persona (se revisa tambien contra usuario.correo)
+CREATE TABLE correo_adicional (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+    correo VARCHAR(120) NOT NULL UNIQUE
+);
+
 CREATE TABLE categoria (
     id SERIAL PRIMARY KEY,
     nombre VARCHAR(60) NOT NULL,
@@ -72,10 +80,42 @@ CREATE TABLE producto (
     stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
     estado VARCHAR(10) NOT NULL CHECK (estado IN ('Publicada', 'Pausada', 'Borrador')),
     calificacion NUMERIC(2,1) NOT NULL DEFAULT 0 CHECK (calificacion BETWEEN 0 AND 5),
-    resenas INTEGER NOT NULL DEFAULT 0 CHECK (resenas >= 0)
+    resenas INTEGER NOT NULL DEFAULT 0 CHECK (resenas >= 0),
+    texto_alternativo VARCHAR(150) NOT NULL DEFAULT ''
 );
 
 CREATE UNIQUE INDEX producto_vendedor_sku ON producto (vendedor_id, sku) WHERE sku <> '';
+
+-- cada variante (talla y/o color) tiene su propio SKU, stock y precio; el stock del producto es la suma
+CREATE TABLE variante (
+    id SERIAL PRIMARY KEY,
+    producto_id INTEGER NOT NULL REFERENCES producto(id) ON DELETE CASCADE,
+    talla VARCHAR(20) NOT NULL DEFAULT '',
+    color VARCHAR(40) NOT NULL DEFAULT '',
+    sku VARCHAR(20) NOT NULL,
+    stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
+    precio INTEGER NOT NULL CHECK (precio > 0),
+    CHECK (talla <> '' OR color <> ''),
+    UNIQUE (producto_id, talla, color)
+);
+
+-- fotos guardadas en la base (hasta 4 por publicacion); la de menor orden es la principal
+CREATE TABLE foto (
+    id SERIAL PRIMARY KEY,
+    producto_id INTEGER NOT NULL REFERENCES producto(id) ON DELETE CASCADE,
+    orden INTEGER NOT NULL DEFAULT 0,
+    tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('image/jpeg', 'image/png', 'image/webp')),
+    datos BYTEA NOT NULL
+);
+
+-- productos relacionados que elige el emprendedor al publicar
+CREATE TABLE producto_relacionado (
+    id SERIAL PRIMARY KEY,
+    producto_id INTEGER NOT NULL REFERENCES producto(id) ON DELETE CASCADE,
+    relacionado_id INTEGER NOT NULL REFERENCES producto(id) ON DELETE CASCADE,
+    CHECK (producto_id <> relacionado_id),
+    UNIQUE (producto_id, relacionado_id)
+);
 
 CREATE TABLE oferta (
     id SERIAL PRIMARY KEY,
@@ -97,6 +137,18 @@ CREATE TABLE costo_envio (
     UNIQUE (vendedor_id, comuna)
 );
 
+-- como cobra el despacho cada emprendedor: por comuna (tabla costo_envio) o por peso (costo base + costo por kilo adicional)
+CREATE TABLE configuracion_envio (
+    vendedor_id INTEGER PRIMARY KEY REFERENCES usuario(id) ON DELETE CASCADE,
+    forma VARCHAR(10) NOT NULL DEFAULT 'Comuna' CHECK (forma IN ('Comuna', 'Peso')),
+    costo_base INTEGER NOT NULL DEFAULT 0 CHECK (costo_base >= 0),
+    costo_kilo INTEGER NOT NULL DEFAULT 0 CHECK (costo_kilo >= 0),
+    tamano_maximo VARCHAR(40) NOT NULL DEFAULT '',
+    retiro_local BOOLEAN NOT NULL DEFAULT FALSE,
+    direccion_retiro VARCHAR(150) NOT NULL DEFAULT '',
+    CHECK (NOT retiro_local OR direccion_retiro <> '')
+);
+
 CREATE TABLE venta (
     id SERIAL PRIMARY KEY,
     cliente_id INTEGER NOT NULL REFERENCES usuario(id),
@@ -112,14 +164,16 @@ CREATE TABLE venta (
     direccion VARCHAR(200) NOT NULL,
     empresa_transporte VARCHAR(50) NOT NULL DEFAULT '',
     seguimiento VARCHAR(50) NOT NULL DEFAULT '',
-    calificada BOOLEAN NOT NULL DEFAULT FALSE
+    calificada BOOLEAN NOT NULL DEFAULT FALSE,
+    retiro BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE detalle_venta (
     id SERIAL PRIMARY KEY,
     venta_id INTEGER NOT NULL REFERENCES venta(id) ON DELETE CASCADE,
     producto_id INTEGER REFERENCES producto(id) ON DELETE SET NULL,
-    nombre VARCHAR(100) NOT NULL,
+    variante_id INTEGER REFERENCES variante(id) ON DELETE SET NULL,
+    nombre VARCHAR(150) NOT NULL,
     cantidad INTEGER NOT NULL CHECK (cantidad >= 1),
     precio INTEGER NOT NULL CHECK (precio >= 0)
 );

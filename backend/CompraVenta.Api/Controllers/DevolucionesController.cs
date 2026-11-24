@@ -53,6 +53,7 @@ namespace CompraVenta.Api.Controllers
             var venta = await _context.Ventas.Include(v => v.Detalles).FirstOrDefaultAsync(v => v.Id == datos.VentaId);
             if (venta is null) return NotFound(RespuestaApi.Error("La compra no existe."));
 
+            if (!this.Puede(datos.ClienteId)) return this.SinPermiso("Solo puedes pedir devoluciones de tus compras.");
             var cliente = await _context.Usuarios.FindAsync(datos.ClienteId);
             if (cliente is null) return NotFound(RespuestaApi.Error("El cliente no existe."));
 
@@ -105,6 +106,7 @@ namespace CompraVenta.Api.Controllers
         {
             var devolucion = await ConsultaDevoluciones().FirstOrDefaultAsync(d => d.Id == id);
             if (devolucion is null) return NotFound(RespuestaApi.Error("Devolución no encontrada."));
+            if (!this.Puede(devolucion.VendedorId)) return this.SinPermiso("Solo el emprendedor que hizo la venta puede resolver la devolución.");
 
             if (devolucion.Estado != "Pendiente")
                 return Conflict(RespuestaApi.Error("Esta devolución ya fue resuelta."));
@@ -113,6 +115,10 @@ namespace CompraVenta.Api.Controllers
             {
                 var producto = await _context.Productos.FindAsync(devolucion.ProductoId);
                 if (producto != null) producto.Stock += devolucion.Cantidad;
+                // si se compro una talla o color, vuelve al stock de esa variante
+                var detalle = await _context.DetallesVenta.FirstOrDefaultAsync(d => d.VentaId == devolucion.VentaId && d.ProductoId == devolucion.ProductoId);
+                var variante = detalle?.VarianteId == null ? null : await _context.Variantes.FindAsync(detalle.VarianteId);
+                if (variante != null) variante.Stock += devolucion.Cantidad;
             }
 
             devolucion.Estado = datos.Estado;

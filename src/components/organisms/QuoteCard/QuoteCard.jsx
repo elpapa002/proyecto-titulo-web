@@ -12,7 +12,7 @@ const textosEstado = {
   Respondida: "El emprendedor respondió. Revisa los valores y decide si aceptas o rechazas.",
   Aceptada: "Aceptaste esta cotización. Coordina la compra con el emprendedor por mensajes.",
   Rechazada: "Rechazaste esta cotización.",
-  Vencida: "Esta cotización venció. Si todavía te interesa, pide una nueva desde el producto.",
+  Expirada: "La cotización expiró y su precio se reajustó. Puedes aceptarla con el nuevo valor o rechazarla.",
 };
 
 const negrita = { fontWeight: 600 };
@@ -95,11 +95,25 @@ const QuoteCard = ({ cotizacion, diasVigencia, onAceptar, onRechazar, onCancelar
               <Typography variant="body2" sx={{ mt: 1 }}>
                 Respondida el {formatearFecha(respuesta.fecha)}
               </Typography>
-              <Typography sx={{ ...negrita, mt: 0.5 }}>
-                {cotizacion.estado === "Vencida"
-                  ? `Venció el ${formatearFecha(respuesta.vigencia)}`
-                  : `Vigente hasta ${formatearFecha(respuesta.vigencia)} (${diasVigencia} días)`}
-              </Typography>
+              {cotizacion.estado === "Expirada" ? (
+                <>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, mt: 1 }}>
+                    <Typography sx={negrita}>Precio reajustado</Typography>
+                    <Typography sx={negrita}>{formatearPrecio(respuesta.totalReajustado)}</Typography>
+                  </Box>
+                  <Typography variant="body2">
+                    Expiró el {formatearFecha(respuesta.vigencia)}. Se reajusta {String(respuesta.reajusteSemanal).replace(".", ",")}%
+                    cada semana ({respuesta.semanasReajuste} {respuesta.semanasReajuste === 1 ? "semana" : "semanas"} hasta hoy).
+                  </Typography>
+                  <Typography sx={{ ...negrita, mt: 0.5 }}>Se elimina el {formatearFecha(respuesta.eliminaEl)}</Typography>
+                </>
+              ) : (
+                <Typography sx={{ ...negrita, mt: 0.5 }}>
+                  {cotizacion.estado === "Respondida"
+                    ? `Vigente hasta ${formatearFecha(respuesta.vigencia)} (${diasVigencia} días)`
+                    : `Tenía vigencia hasta el ${formatearFecha(respuesta.vigencia)}`}
+                </Typography>
+              )}
             </Box>
           </Grid>
         )}
@@ -118,7 +132,7 @@ const QuoteCard = ({ cotizacion, diasVigencia, onAceptar, onRechazar, onCancelar
               Cancelar cotización
             </CustomButton>
           )}
-          {cotizacion.estado === "Respondida" && (
+          {(cotizacion.estado === "Respondida" || cotizacion.estado === "Expirada") && (
             <>
               <CustomButton tono="contorno" startIcon={<CloseIcon />} onClick={() => onRechazar(cotizacion)}>
                 Rechazar

@@ -8,11 +8,15 @@ DOTNET="$HOME/.dotnet/dotnet"
 
 echo "== Instalación de Compra y Venta =="
 
-case "$(uname -m)" in
-  aarch64|x86_64) ;;
+# se revisa el sistema y no solo el procesador: Raspberry Pi OS de 32 bits puede correr
+# sobre un procesador de 64 bits y ahi .NET 8 y Node 22 no se instalan
+ARQUITECTURA="$(dpkg --print-architecture 2> /dev/null || uname -m)"
+case "$ARQUITECTURA" in
+  arm64|amd64|aarch64|x86_64) ;;
   *)
-    echo "Este equipo es de $(uname -m). El backend en .NET 8 necesita un sistema de 64 bits."
-    echo "En la Raspberry usa Raspberry Pi OS de 64 bits; en VirtualBox usa la imagen amd64."
+    echo "Este sistema es de 32 bits ($ARQUITECTURA). El backend en .NET 8 y el frontend necesitan un sistema de 64 bits."
+    echo "En la Raspberry graba de nuevo la tarjeta con Raspberry Pi Imager eligiendo Raspberry Pi OS (64-bit)."
+    echo "En VirtualBox usa la imagen amd64."
     exit 1
     ;;
 esac
@@ -59,6 +63,12 @@ SQL
 export PGPASSWORD="$CLAVE_BD"
 BD="psql -h localhost -U compraventa_app -d compraventa -q -v ON_ERROR_STOP=1"
 TABLAS="$($BD -tAc "SELECT to_regclass('public.usuario')")"
+# si la base es de una version anterior (le faltan las tablas del Avance 3) se vuelve a cargar
+NUEVAS="$($BD -tAc "SELECT to_regclass('public.variante') IS NOT NULL AND to_regclass('public.correo_adicional') IS NOT NULL")"
+if [ -n "$TABLAS" ] && [ "$NUEVAS" != "t" ]; then
+  echo "La base es de una versión anterior: se cargan de nuevo las tablas y los datos de prueba"
+  REINICIAR_DATOS=si
+fi
 if [ "$REINICIAR_DATOS" = "si" ] || [ -z "$TABLAS" ]; then
   echo "Cargando tablas y datos de prueba"
   $BD -o /dev/null -f "$RAIZ/database/01_tablas.sql"

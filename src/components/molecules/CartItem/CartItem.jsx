@@ -21,9 +21,16 @@ const CartItem = ({ item, onCantidad, onQuitar }) => {
           borderRadius: 1,
           display: { xs: "none", sm: "grid" },
           placeItems: "center",
+          overflow: "hidden",
         }}
       >
-        {esServicio ? <ScheduleOutlinedIcon /> : <ImageOutlinedIcon />}
+        {item.fotoUrl ? (
+          <Box component="img" src={item.fotoUrl} alt="" sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : esServicio ? (
+          <ScheduleOutlinedIcon />
+        ) : (
+          <ImageOutlinedIcon />
+        )}
       </Box>
 
       <Box
@@ -50,6 +57,7 @@ const CartItem = ({ item, onCantidad, onQuitar }) => {
           <Typography variant="body2">
             {item.tienda}
             {esServicio ? " · Servicio" : ""}
+            {item.variante ? ` · ${item.variante}` : ""}
           </Typography>
           <Typography>{formatearPrecio(item.precio)} c/u</Typography>
         </Box>

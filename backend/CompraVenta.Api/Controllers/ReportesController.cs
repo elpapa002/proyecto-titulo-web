@@ -44,7 +44,8 @@ namespace CompraVenta.Api.Controllers
                 .Select(g => new ProductoVendidoDto
                 {
                     ProductoId = g.Key,
-                    Nombre = g.First().Nombre,
+                    // si se vendio por talla o color, el nombre trae "(Talla M · Azul)" y aca se agrupa por producto
+                    Nombre = g.First().VarianteId == null ? g.First().Nombre : g.First().Nombre.Split(" (")[0],
                     Unidades = g.Sum(d => d.Cantidad),
                     Total = g.Sum(d => d.Cantidad * d.Precio)
                 })

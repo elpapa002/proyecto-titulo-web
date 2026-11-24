@@ -4,6 +4,7 @@ import UserTable from "../../components/organisms/UserTable/UserTable";
 import UserFormDialog from "../../components/organisms/UserFormDialog/UserFormDialog";
 import DeleteDialog from "../../components/organisms/DeleteDialog/DeleteDialog";
 import ConfirmDialog from "../../components/organisms/ConfirmDialog/ConfirmDialog";
+import TempPasswordDialog from "../../components/organisms/TempPasswordDialog/TempPasswordDialog";
 import Notice from "../../components/molecules/Notice/Notice";
 import useUser from "../../contexts/UserContext/useUser";
 import { actualizarUsuario, crearUsuario, eliminarUsuario, obtenerUsuarios, restablecerClave } from "../../services/userService";
@@ -20,6 +21,7 @@ const UsersScreen = () => {
   const [aBorrar, setABorrar] = useState(null);
   const [aRestablecer, setARestablecer] = useState(null);
   const [aviso, setAviso] = useState("");
+  const [claveTemporal, setClaveTemporal] = useState(null);
 
   useEffect(() => {
     const cargar = async () => {
@@ -42,6 +44,8 @@ const UsersScreen = () => {
 
     if (original && usuarioSesion?.id === original.id) actualizarUsuarioSesion(datos);
     setAviso(original ? "Usuario actualizado" : "Usuario agregado");
+    if (!original && respuesta.datos?.claveTemporal)
+      setClaveTemporal({ nombre: nombreCorto(respuesta.datos), clave: respuesta.datos.claveTemporal });
     setFormulario(null);
     setRecargas((n) => n + 1);
   };
@@ -76,7 +80,8 @@ const UsersScreen = () => {
       setAviso(respuesta.error ?? "No se pudo restablecer la clave. Intenta de nuevo.");
       return;
     }
-    setAviso(`La clave temporal de ${nombreCorto(usuario)} es su RUN sin puntos ni guion`);
+    setAviso("Clave restablecida");
+    setClaveTemporal({ nombre: nombreCorto(usuario), clave: respuesta.datos.claveTemporal });
   };
 
   return (
@@ -120,13 +125,15 @@ const UsersScreen = () => {
         titulo="¿Restablecer la clave?"
         mensaje={
           aRestablecer
-            ? `La clave de ${nombreCorto(aRestablecer)} pasará a ser su RUN sin puntos ni guion. Después la puede cambiar en Mi perfil.`
+            ? `Se va a generar una clave temporal para ${nombreCorto(aRestablecer)}. Te la mostraremos una sola vez para que se la entregues, y la debe cambiar en Mi perfil.`
             : ""
         }
         textoConfirmar="Restablecer"
         onCancelar={() => setARestablecer(null)}
         onConfirmar={confirmarRestablecer}
       />
+
+      <TempPasswordDialog datos={claveTemporal} onCerrar={() => setClaveTemporal(null)} />
 
       <Notice mensaje={aviso} onClose={() => setAviso("")} />
     </>

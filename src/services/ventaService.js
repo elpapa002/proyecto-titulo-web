@@ -36,11 +36,19 @@ export const crearVenta = (datos) =>
   llamarApi("/ventas", "POST", datos, () => {
     datos.items.forEach((item) => {
       const producto = memoria.productos.find((p) => p.id === item.productoId);
-      if (!producto || producto.stock < item.cantidad) throw new Error(`No hay stock suficiente de ${item.nombre}.`);
+      const variante = producto?.variantes?.find((v) => v.id === item.varianteId);
+      const disponible = variante ? variante.stock : producto?.stock;
+      if (!producto || disponible < item.cantidad) throw new Error(`No hay stock suficiente de ${item.nombre}.`);
     });
+    // descuenta el stock del producto y, si se eligio talla o color, el de esa variante
     memoria.productos = memoria.productos.map((p) => {
-      const item = datos.items.find((i) => i.productoId === p.id);
-      return item ? { ...p, stock: p.stock - item.cantidad } : p;
+      const items = datos.items.filter((i) => i.productoId === p.id);
+      if (items.length === 0) return p;
+      const variantes = (p.variantes ?? []).map((v) => {
+        const item = items.find((i) => i.varianteId === v.id);
+        return item ? { ...v, stock: v.stock - item.cantidad } : v;
+      });
+      return { ...p, variantes, stock: p.stock - items.reduce((suma, i) => suma + i.cantidad, 0) };
     });
     const nueva = {
       ...datos,

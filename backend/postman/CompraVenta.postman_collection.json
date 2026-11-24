@@ -2,10 +2,1733 @@
   "info": {
     "_postman_id": "bd18da14-d1da-574b-8171-55a8737c921a",
     "name": "Compra y Venta API",
-    "description": "Pruebas de la API del proyecto Compra y Venta (Avance 3, TWM). Cada carpeta tiene al menos un caso de éxito y dos de error, con el código esperado en la descripción. Se ejecuta en orden sobre una base recién cargada con database/01_tablas.sql y database/02_datos.sql. Cambiar la variable baseUrl por la IP de la Raspberry.\n\nLas claves no viajan en texto plano: el frontend las cifra con bcrypt usando una sal que sale del RUN (src/utils/clave.js) y el backend vuelve a cifrar ese valor con bcrypt antes de guardarlo. Por eso en los cuerpos de login, registro y cambio de clave aparece el valor ya cifrado; la descripción de cada petición dice cuál es la clave sin cifrar. La clave Clave2026 es solo de los datos de ejemplo.",
+    "description": "Pruebas de la API del proyecto Compra y Venta (Avance 3, TWM). La variable baseUrl viene con http://localhost:5000; para probar contra la Raspberry se cambia por http://IP_RASPBERRY:5000.\n\nLa primera carpeta, Demostración, sigue la secuencia sugerida en la API de ejemplo del profe (listar, crear, buscar, actualizar, eliminar, buscar lo eliminado y crear con datos incompletos). La última, Seguridad, muestra los casos sin token (401) y sin permiso (403).\n\nAntes de cada petición la colección inicia sesión sola como administrador y guarda el token en la variable token; todas las peticiones lo mandan como Bearer (pestaña Authorization de la colección). Si el backend se reinicia y el token deja de servir, se pide uno nuevo.\n\nLas claves no viajan en texto plano: el frontend las cifra con bcrypt usando una sal que sale del RUN (src/utils/clave.js) y el backend vuelve a cifrar ese valor antes de guardarlo. En los cuerpos de login, registro y cambio de clave aparece el valor ya cifrado y la descripción dice la clave sin cifrar. La clave Clave2026 es solo de los datos de ejemplo.\n\nSe corre en orden sobre una base recién cargada con database/01_tablas.sql y database/02_datos.sql.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
+    {
+      "name": "Informe: login y 4 CRUDs por perfil",
+      "description": "Pruebas del informe técnico. Primero se inicia sesión con cada rol y después cada CRUD usa el token de su perfil: Direcciones (cliente), Publicaciones (emprendedor), Compañías y Usuarios (administrador). Cada CRUD termina eliminando lo que creó, así se puede correr varias veces.",
+      "item": [
+        {
+          "name": "1. Login por rol",
+          "item": [
+            {
+              "name": "Login cliente",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(true);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});",
+                      "var datos = pm.response.json().data;",
+                      "pm.test(\"El usuario tiene el rol Cliente y llega un token\", function () {",
+                      "    pm.expect(datos.usuario.roles).to.include(\"Cliente\");",
+                      "    pm.expect(datos.token).to.be.a(\"string\").and.not.be.empty;",
+                      "});",
+                      "pm.collectionVariables.set(\"tokenCliente\", datos.token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "login"
+                  ]
+                },
+                "description": "Caso de éxito. Código esperado: 200 OK.\n\nInicia sesión como cliente y guarda el token en la variable tokenCliente. La clave va cifrada con bcrypt como la manda el frontend; sin cifrar es Clave2026.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"run\": \"20.456.789-1\",\n  \"clave\": \"$2b$10$CompraVenta204567891..GSz/mmN8sIwKKgQJe2TKkqnQWl5TKwi\",\n  \"recordarSesion\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Login emprendedor",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(true);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});",
+                      "var datos = pm.response.json().data;",
+                      "pm.test(\"El usuario tiene el rol Vendedor y llega un token\", function () {",
+                      "    pm.expect(datos.usuario.roles).to.include(\"Vendedor\");",
+                      "    pm.expect(datos.token).to.be.a(\"string\").and.not.be.empty;",
+                      "});",
+                      "pm.collectionVariables.set(\"tokenEmprendedor\", datos.token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "login"
+                  ]
+                },
+                "description": "Caso de éxito. Código esperado: 200 OK.\n\nInicia sesión como emprendedor y guarda el token en la variable tokenEmprendedor. La clave va cifrada con bcrypt como la manda el frontend; sin cifrar es Clave2026.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"run\": \"16.903.557-1\",\n  \"clave\": \"$2b$10$CompraVenta169035571..0j98VZLvMx7jCSF3yVHG1jfQVRls/bi\",\n  \"recordarSesion\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Login administrador",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(true);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});",
+                      "var datos = pm.response.json().data;",
+                      "pm.test(\"El usuario tiene el rol Admin y llega un token\", function () {",
+                      "    pm.expect(datos.usuario.roles).to.include(\"Admin\");",
+                      "    pm.expect(datos.token).to.be.a(\"string\").and.not.be.empty;",
+                      "});",
+                      "pm.collectionVariables.set(\"tokenAdmin\", datos.token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "login"
+                  ]
+                },
+                "description": "Caso de éxito. Código esperado: 200 OK.\n\nInicia sesión como admin y guarda el token en la variable tokenAdmin. La clave va cifrada con bcrypt como la manda el frontend; sin cifrar es Clave2026.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"run\": \"11.111.111-1\",\n  \"clave\": \"$2b$10$CompraVenta111111111..xkoWAlKkagiDUJ3vbsaVfhasSSWGYgG\",\n  \"recordarSesion\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Login con clave incorrecta",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 401 Unauthorized\", function () { pm.response.to.have.status(401); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(false);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "login"
+                  ]
+                },
+                "description": "Caso de error. Código esperado: 401 Unauthorized.\n\nResponde 401 con \"RUN o clave incorrectos.\"",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"run\": \"20.456.789-1\",\n  \"clave\": \"$2b$10$CompraVenta204567891..SX34eanBlkDWACZUemYJ24oAMMJPeJ6\",\n  \"recordarSesion\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Ruta protegida sin token",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 401 Unauthorized\", function () { pm.response.to.have.status(401); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(false);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "usuarios"
+                  ]
+                },
+                "description": "Caso de error. Código esperado: 401 Unauthorized.\n\nSin token no se puede usar la API.",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "2. CRUD cliente: direcciones",
+          "item": [
+            {
+              "name": "Crear dirección",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 201 Created\", function () { pm.response.to.have.status(201); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(true);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});",
+                      "if (pm.response.code === 201) { pm.collectionVariables.set(\"direccionInformeId\", pm.response.json().data.id); }"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/direcciones",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "direcciones"
+                  ]
+                },
+                "description": "Caso de éxito. Código esperado: 201 Created.\n\nEl cliente agrega una dirección de despacho a su cuenta.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"usuarioId\": 1,\n  \"calle\": \"Bulnes\",\n  \"numero\": \"640\",\n  \"comuna\": \"Osorno\",\n  \"codigoPostal\": \"5290000\",\n  \"principal\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenCliente}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Ver mis direcciones",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(true);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});",
+                      "pm.test(\"La dirección nueva está en la lista\", function () {",
+                      "    var ids = pm.response.json().data.map(function (d) { return d.id; });",
+                      "    pm.expect(ids).to.include(Number(pm.collectionVariables.get(\"direccionInformeId\")));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/usuarios/1/direcciones",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "usuarios",
+                    "1",
+                    "direcciones"
+                  ]
+                },
+                "description": "Caso de éxito. Código esperado: 200 OK.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenCliente}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Editar dirección",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(true);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});",
+                      "pm.test(\"Cambió el número\", function () { pm.expect(pm.response.json().data.numero).to.eql(\"655\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/direcciones/{{direccionInformeId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "direcciones",
+                    "{{direccionInformeId}}"
+                  ]
+                },
+                "description": "Caso de éxito. Código esperado: 200 OK.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"usuarioId\": 1,\n  \"calle\": \"Bulnes\",\n  \"numero\": \"655\",\n  \"comuna\": \"Osorno\",\n  \"codigoPostal\": \"5290000\",\n  \"principal\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenCliente}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Eliminar dirección",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(true);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/direcciones/{{direccionInformeId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "direcciones",
+                    "{{direccionInformeId}}"
+                  ]
+                },
+                "description": "Caso de éxito. Código esperado: 200 OK.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenCliente}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Editar la dirección de otra persona",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 403 Forbidden\", function () { pm.response.to.have.status(403); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(false);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/direcciones/3",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "direcciones",
+                    "3"
+                  ]
+                },
+                "description": "Caso de error. Código esperado: 403 Forbidden.\n\nLa dirección 3 es del emprendedor; el cliente no la puede cambiar.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"usuarioId\": 2,\n  \"calle\": \"Bulnes\",\n  \"numero\": \"640\",\n  \"comuna\": \"Osorno\",\n  \"codigoPostal\": \"5290000\",\n  \"principal\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenCliente}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "3. CRUD emprendedor: publicaciones",
+          "item": [
+            {
+              "name": "Crear publicación",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 201 Created\", function () { pm.response.to.have.status(201); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(true);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});",
+                      "if (pm.response.code === 201) { pm.collectionVariables.set(\"productoInformeId\", pm.response.json().data.id); }"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/productos",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "productos"
+                  ]
+                },
+                "description": "Caso de éxito. Código esperado: 201 Created.\n\nEl emprendedor publica un producto nuevo en su tienda.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"vendedorId\": 2,\n  \"tipo\": \"Producto\",\n  \"nombre\": \"Bolso de lana tejido\",\n  \"categoriaId\": 3,\n  \"subcategoriaId\": 32,\n  \"descripcion\": \"Bolso tejido a telar con lana de oveja de Chiloé.\",\n  \"material\": \"Lana de oveja\",\n  \"peso\": \"300 g\",\n  \"tamano\": \"35 x 30 cm\",\n  \"color\": \"Gris\",\n  \"duracion\": \"\",\n  \"sku\": \"TDS-BOL\",\n  \"stock\": 6,\n  \"precio\": 19990,\n  \"edadMinima\": 0,\n  \"estado\": \"Publicada\",\n  \"textoAlternativo\": \"Bolso gris tejido\",\n  \"variantes\": [],\n  \"relacionados\": []\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenEmprendedor}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Ver publicación",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(true);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});",
+                      "pm.test(\"Es la publicación creada\", function () { pm.expect(pm.response.json().data.sku).to.eql(\"TDS-BOL\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/productos/{{productoInformeId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "productos",
+                    "{{productoInformeId}}"
+                  ]
+                },
+                "description": "Caso de éxito. Código esperado: 200 OK.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenEmprendedor}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Editar publicación",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(true);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});",
+                      "pm.test(\"Cambiaron el precio y el stock\", function () {",
+                      "    var p = pm.response.json().data;",
+                      "    pm.expect(p.precio).to.eql(17990);",
+                      "    pm.expect(p.stock).to.eql(4);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/productos/{{productoInformeId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "productos",
+                    "{{productoInformeId}}"
+                  ]
+                },
+                "description": "Caso de éxito. Código esperado: 200 OK.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"vendedorId\": 2,\n  \"tipo\": \"Producto\",\n  \"nombre\": \"Bolso de lana tejido\",\n  \"categoriaId\": 3,\n  \"subcategoriaId\": 32,\n  \"descripcion\": \"Bolso tejido a telar con lana de oveja de Chiloé.\",\n  \"material\": \"Lana de oveja\",\n  \"peso\": \"300 g\",\n  \"tamano\": \"35 x 30 cm\",\n  \"color\": \"Gris\",\n  \"duracion\": \"\",\n  \"sku\": \"TDS-BOL\",\n  \"stock\": 4,\n  \"precio\": 17990,\n  \"edadMinima\": 0,\n  \"estado\": \"Publicada\",\n  \"textoAlternativo\": \"Bolso gris tejido\",\n  \"variantes\": [],\n  \"relacionados\": []\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenEmprendedor}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Eliminar publicación",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(true);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/productos/{{productoInformeId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "productos",
+                    "{{productoInformeId}}"
+                  ]
+                },
+                "description": "Caso de éxito. Código esperado: 200 OK.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenEmprendedor}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Editar la publicación de otra tienda",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 403 Forbidden\", function () { pm.response.to.have.status(403); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(false);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/productos/7",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "productos",
+                    "7"
+                  ]
+                },
+                "description": "Caso de error. Código esperado: 403 Forbidden.\n\nLa publicación 7 es de otro emprendedor.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"vendedorId\": 3,\n  \"tipo\": \"Producto\",\n  \"nombre\": \"Bolso de lana tejido\",\n  \"categoriaId\": 3,\n  \"subcategoriaId\": 32,\n  \"descripcion\": \"Bolso tejido a telar con lana de oveja de Chiloé.\",\n  \"material\": \"Lana de oveja\",\n  \"peso\": \"300 g\",\n  \"tamano\": \"35 x 30 cm\",\n  \"color\": \"Gris\",\n  \"duracion\": \"\",\n  \"sku\": \"TDS-BOL\",\n  \"stock\": 6,\n  \"precio\": 19990,\n  \"edadMinima\": 0,\n  \"estado\": \"Publicada\",\n  \"textoAlternativo\": \"Bolso gris tejido\",\n  \"variantes\": [],\n  \"relacionados\": []\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenEmprendedor}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "4. CRUD administrador: compañías",
+          "item": [
+            {
+              "name": "Crear compañía",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 201 Created\", function () { pm.response.to.have.status(201); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(true);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});",
+                      "if (pm.response.code === 201) { pm.collectionVariables.set(\"companiaInformeId\", pm.response.json().data.id); }"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/companias",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "companias"
+                  ]
+                },
+                "description": "Caso de éxito. Código esperado: 201 Created.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rut\": \"76.543.987-6\",\n  \"nombre\": \"Tejidos Rahue\",\n  \"personas\": 3,\n  \"telefono\": \"+56 64 233 4455\",\n  \"correo\": \"contacto@tejidosrahue.cl\",\n  \"sitioWeb\": \"tejidosrahue.cl\",\n  \"direccion\": \"Lynch 820, Osorno\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Ver compañía",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(true);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});",
+                      "pm.test(\"Es la compañía creada\", function () { pm.expect(pm.response.json().data.rut).to.eql(\"76.543.987-6\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/companias/{{companiaInformeId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "companias",
+                    "{{companiaInformeId}}"
+                  ]
+                },
+                "description": "Caso de éxito. Código esperado: 200 OK.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Editar compañía",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(true);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});",
+                      "pm.test(\"Cambió el nombre\", function () { pm.expect(pm.response.json().data.nombre).to.eql(\"Tejidos Rahue Ltda.\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/companias/{{companiaInformeId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "companias",
+                    "{{companiaInformeId}}"
+                  ]
+                },
+                "description": "Caso de éxito. Código esperado: 200 OK.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rut\": \"76.543.987-6\",\n  \"nombre\": \"Tejidos Rahue Ltda.\",\n  \"personas\": 5,\n  \"telefono\": \"+56 64 233 4455\",\n  \"correo\": \"contacto@tejidosrahue.cl\",\n  \"sitioWeb\": \"tejidosrahue.cl\",\n  \"direccion\": \"Lynch 820, Osorno\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Eliminar compañía",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(true);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/companias/{{companiaInformeId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "companias",
+                    "{{companiaInformeId}}"
+                  ]
+                },
+                "description": "Caso de éxito. Código esperado: 200 OK.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Cliente intenta crear una compañía",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 403 Forbidden\", function () { pm.response.to.have.status(403); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(false);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/companias",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "companias"
+                  ]
+                },
+                "description": "Caso de error. Código esperado: 403 Forbidden.\n\nCrear compañías es solo del administrador.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rut\": \"76.543.987-6\",\n  \"nombre\": \"Tejidos Rahue\",\n  \"personas\": 3,\n  \"telefono\": \"+56 64 233 4455\",\n  \"correo\": \"contacto@tejidosrahue.cl\",\n  \"sitioWeb\": \"tejidosrahue.cl\",\n  \"direccion\": \"Lynch 820, Osorno\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenCliente}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "5. CRUD administrador: usuarios",
+          "item": [
+            {
+              "name": "Crear usuario",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 201 Created\", function () { pm.response.to.have.status(201); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(true);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});",
+                      "if (pm.response.code === 201) { pm.collectionVariables.set(\"usuarioInformeId\", pm.response.json().data.id); }",
+                      "pm.test(\"Trae una clave temporal al azar\", function () { pm.expect(pm.response.json().data.claveTemporal).to.match(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "usuarios"
+                  ]
+                },
+                "description": "Caso de éxito. Código esperado: 201 Created.\n\nSe crea sin clave: el backend genera una clave temporal al azar (por ejemplo K7PR-M2QW), la entrega una sola vez en data.claveTemporal y la persona la cambia al entrar.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"run\": \"19.876.321-7\",\n  \"correo\": \"paula.vargas@gmail.com\",\n  \"nombres\": \"Paula\",\n  \"apellidos\": \"Vargas Ruiz\",\n  \"roles\": [\n    \"Cliente\"\n  ],\n  \"companiaId\": null\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Ver usuario",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(true);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});",
+                      "pm.test(\"Es el usuario creado\", function () { pm.expect(pm.response.json().data.run).to.eql(\"19.876.321-7\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/usuarios/{{usuarioInformeId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "usuarios",
+                    "{{usuarioInformeId}}"
+                  ]
+                },
+                "description": "Caso de éxito. Código esperado: 200 OK.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Editar usuario",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(true);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});",
+                      "pm.test(\"Cambiaron el nombre y los roles\", function () {",
+                      "    var u = pm.response.json().data;",
+                      "    pm.expect(u.nombres).to.eql(\"Paula Andrea\");",
+                      "    pm.expect(u.roles).to.include(\"Vendedor\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/usuarios/{{usuarioInformeId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "usuarios",
+                    "{{usuarioInformeId}}"
+                  ]
+                },
+                "description": "Caso de éxito. Código esperado: 200 OK.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombres\": \"Paula Andrea\",\n  \"roles\": [\n    \"Cliente\",\n    \"Vendedor\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Eliminar usuario",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(true);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/usuarios/{{usuarioInformeId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "usuarios",
+                    "{{usuarioInformeId}}"
+                  ]
+                },
+                "description": "Caso de éxito. Código esperado: 200 OK.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Emprendedor intenta ver la lista de usuarios",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Responde 403 Forbidden\", function () { pm.response.to.have.status(403); });",
+                      "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                      "    var json = pm.response.json();",
+                      "    pm.expect(json.success).to.eql(false);",
+                      "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "usuarios"
+                  ]
+                },
+                "description": "Caso de error. Código esperado: 403 Forbidden.\n\nLa lista de usuarios es solo del administrador.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenEmprendedor}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Demostración",
+      "description": "Secuencia para mostrar la API en clase, igual que la sugerida en la API de ejemplo del profe, pero con las compañías del proyecto. Se corre en orden. El token del administrador lo pone la colección.",
+      "item": [
+        {
+          "name": "0. Inicio de la API",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api"
+              ]
+            },
+            "description": "Caso exitoso. Código esperado: 200 OK.\n\nMensaje de bienvenida con las instrucciones. Es pública, sirve para revisar que el backend está arriba.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1. Listar compañías",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/companias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companias"
+              ]
+            },
+            "description": "Caso exitoso. Código esperado: 200 OK.\n\nRevisar los registros iniciales."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Crear compañía",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201 Created\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"demoCompaniaId\", pm.response.json().data.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/companias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companias"
+              ]
+            },
+            "description": "Caso exitoso. Código esperado: 201 Created.\n\nSe crea una compañía nueva. El id que devuelve queda guardado en la variable demoCompaniaId.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rut\": \"77.888.999-4\",\n  \"nombre\": \"Cecinas Llanquihue\",\n  \"personas\": 4,\n  \"telefono\": \"+56 64 255 1234\",\n  \"correo\": \"ventas@cecinasllanquihue.cl\",\n  \"sitioWeb\": \"\",\n  \"direccion\": \"Los Carrera 1500, Osorno\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3. Buscar la compañía creada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/companias/{{demoCompaniaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companias",
+                "{{demoCompaniaId}}"
+              ]
+            },
+            "description": "Caso exitoso. Código esperado: 200 OK.\n\nConsultar el registro nuevo por su id."
+          },
+          "response": []
+        },
+        {
+          "name": "4. Actualizar la compañía",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/companias/{{demoCompaniaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companias",
+                "{{demoCompaniaId}}"
+              ]
+            },
+            "description": "Caso exitoso. Código esperado: 200 OK.\n\nSe cambian el nombre, la cantidad de personas y el correo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rut\": \"77.888.999-4\",\n  \"nombre\": \"Cecinas Llanquihue Ltda.\",\n  \"personas\": 6,\n  \"telefono\": \"+56 64 255 1234\",\n  \"correo\": \"contacto@cecinasllanquihue.cl\",\n  \"sitioWeb\": \"\",\n  \"direccion\": \"Los Carrera 1500, Osorno\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5. Eliminar la compañía",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/companias/{{demoCompaniaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companias",
+                "{{demoCompaniaId}}"
+              ]
+            },
+            "description": "Caso exitoso. Código esperado: 200 OK.\n\nResponde con el mensaje Compañía eliminada correctamente."
+          },
+          "response": []
+        },
+        {
+          "name": "6. Buscar la compañía eliminada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 404 Not Found\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/companias/{{demoCompaniaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companias",
+                "{{demoCompaniaId}}"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 404 Not Found.\n\nComo ya no existe, responde 404."
+          },
+          "response": []
+        },
+        {
+          "name": "7. Crear con datos incompletos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/companias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "companias"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 400 Bad Request.\n\nFaltan campos obligatorios y el correo no tiene formato válido. En errors vienen los mensajes de cada campo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rut\": \"\",\n  \"nombre\": \"\",\n  \"personas\": 0,\n  \"telefono\": \"\",\n  \"correo\": \"sin-arroba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
     {
       "name": "Autenticación",
       "description": "Inicio de sesión (POST /api/login) y registro de cuentas (POST /api/usuarios/registro).",
@@ -681,7 +2404,8 @@
                   "    pm.expect(json.success).to.eql(true);",
                   "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
                   "});",
-                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"usuarioCreadoId\", pm.response.json().data.id); }"
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"usuarioCreadoId\", pm.response.json().data.id); }",
+                  "pm.test(\"Trae una clave temporal al azar\", function () { pm.expect(pm.response.json().data.claveTemporal).to.match(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/); });"
                 ]
               }
             }
@@ -713,22 +2437,22 @@
                 "usuarios"
               ]
             },
-            "description": "Caso de éxito. Código esperado: 201 Created.\n\nSe crea sin clave: la clave temporal es el RUN sin puntos ni guion (195554447)."
+            "description": "Caso de éxito. Código esperado: 201 Created.\n\nSe crea sin clave: el backend genera una clave temporal al azar (por ejemplo K7PR-M2QW), la entrega una sola vez en data.claveTemporal y la persona la cambia al entrar."
           },
           "response": []
         },
         {
-          "name": "Login con la clave temporal",
+          "name": "Login con el RUN como clave",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Responde 401 Unauthorized\", function () { pm.response.to.have.status(401); });",
                   "pm.test(\"Formato {success, message, data, errors}\", function () {",
                   "    var json = pm.response.json();",
-                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.success).to.eql(false);",
                   "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
                   "});"
                 ]
@@ -762,7 +2486,7 @@
                 "login"
               ]
             },
-            "description": "Caso de éxito. Código esperado: 200 OK.\n\nLa clave temporal es el RUN sin puntos ni guion.\n\nClave sin cifrar (clave = 195554447), cifrada como lo hace el frontend."
+            "description": "Caso de error. Código esperado: 401 Unauthorized.\n\nLa clave temporal ya no es el RUN sin puntos ni guion (antes era fácil de adivinar). Se manda el RUN cifrado como lo hace el frontend (clave = 195554447) y el backend lo rechaza."
           },
           "response": []
         },
@@ -1092,7 +2816,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"run\": \"19.555.444-7\",\n  \"claveActual\": \"$2b$10$CompraVenta195554447..P0tpQ1YiB71PyllMplKjKKuzSAi2PLa\",\n  \"claveNueva\": \"$2b$10$CompraVenta195554447..iGfYfXywiw8n64VoMrN71lRs/jiuBfC\"\n}",
+              "raw": "{\n  \"run\": \"18.765.432-7\",\n  \"claveActual\": \"$2b$10$CompraVenta187654327..5fL4jUlpt/y3X9rI9Mphs8rdW7eVcva\",\n  \"claveNueva\": \"$2b$10$CompraVenta187654327..Gp12LEnzR0nmBg3FBmqSo99e83fKkc.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1100,18 +2824,18 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/usuarios/{{usuarioCreadoId}}/clave",
+              "raw": "{{baseUrl}}/api/usuarios/10/clave",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "usuarios",
-                "{{usuarioCreadoId}}",
+                "10",
                 "clave"
               ]
             },
-            "description": "Caso de éxito. Código esperado: 200 OK.\n\nVerifica la clave actual con bcrypt y guarda el hash de la nueva.\n\nClave sin cifrar (claveActual = 195554447, claveNueva = NuevaClave2026), cifrada como lo hace el frontend."
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nVerifica la clave actual con bcrypt y guarda el hash de la nueva. Se usa el usuario de prueba Tomás Aguilar (id 10).\n\nClave sin cifrar (claveActual = Clave2026, claveNueva = NuevaClave2026), cifrada como lo hace el frontend."
           },
           "response": []
         },
@@ -1230,7 +2954,8 @@
                   "    var json = pm.response.json();",
                   "    pm.expect(json.success).to.eql(true);",
                   "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
-                  "});"
+                  "});",
+                  "pm.test(\"Trae una clave temporal al azar\", function () { pm.expect(pm.response.json().data.claveTemporal).to.match(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/); });"
                 ]
               }
             }
@@ -1251,22 +2976,22 @@
                 "restablecer"
               ]
             },
-            "description": "Caso exitoso. Código esperado: 200 OK.\n\nEl administrador deja como clave temporal el RUN sin puntos ni guion."
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nEl administrador genera una clave temporal al azar nueva; se entrega una sola vez en data.claveTemporal."
           },
           "response": []
         },
         {
-          "name": "Login con la clave restablecida",
+          "name": "Login con el RUN después de restablecer",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Responde 401 Unauthorized\", function () { pm.response.to.have.status(401); });",
                   "pm.test(\"Formato {success, message, data, errors}\", function () {",
                   "    var json = pm.response.json();",
-                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.success).to.eql(false);",
                   "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
                   "});"
                 ]
@@ -1300,7 +3025,7 @@
                 "login"
               ]
             },
-            "description": "Caso exitoso. Código esperado: 200 OK.\n\nClave sin cifrar (clave = 195554447), cifrada como lo hace el frontend."
+            "description": "Caso de error. Código esperado: 401 Unauthorized.\n\nLa clave temporal ya no es el RUN sin puntos ni guion (antes era fácil de adivinar). Se manda el RUN cifrado como lo hace el frontend (clave = 195554447) y el backend lo rechaza."
           },
           "response": []
         },
@@ -1386,7 +3111,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 204 No Content\", function () { pm.response.to.have.status(204); });"
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
                 ]
               }
             }
@@ -1405,7 +3135,7 @@
                 "{{usuarioCreadoId}}"
               ]
             },
-            "description": "Caso de éxito. Código esperado: 204 No Content.\n\nElimina el usuario creado más arriba. Responde sin cuerpo."
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nElimina el usuario creado más arriba. Responde sin cuerpo."
           },
           "response": []
         },
@@ -1814,7 +3544,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 204 No Content\", function () { pm.response.to.have.status(204); });"
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
                 ]
               }
             }
@@ -1833,7 +3568,7 @@
                 "{{companiaId}}"
               ]
             },
-            "description": "Caso de éxito. Código esperado: 204 No Content.\n\nLos usuarios de esa compañía quedan sin compañía."
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nLos usuarios de esa compañía quedan sin compañía."
           },
           "response": []
         },
@@ -2339,7 +4074,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 204 No Content\", function () { pm.response.to.have.status(204); });"
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
                 ]
               }
             }
@@ -2358,7 +4098,7 @@
                 "{{categoriaId}}"
               ]
             },
-            "description": "Caso de éxito. Código esperado: 204 No Content.\n\nCategoría sin hijas ni productos."
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nCategoría sin hijas ni productos."
           },
           "response": []
         },
@@ -2975,7 +4715,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 204 No Content\", function () { pm.response.to.have.status(204); });"
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
                 ]
               }
             }
@@ -2994,7 +4739,515 @@
                 "{{productoId}}"
               ]
             },
-            "description": "Caso de éxito. Código esperado: 204 No Content.\n\nPublicación sin ventas."
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nPublicación sin ventas."
+          },
+          "response": []
+        },
+        {
+          "name": "Ver producto con variantes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "pm.test(\"Trae sus 4 variantes y el stock es la suma\", function () {",
+                  "    var p = pm.response.json().data;",
+                  "    pm.expect(p.variantes.length).to.eql(4);",
+                  "    pm.expect(p.stock).to.eql(p.variantes.reduce(function (s, v) { return s + v.stock; }, 0));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "productos",
+                "1"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nCada variante (talla y color) tiene su SKU, stock y precio."
+          },
+          "response": []
+        },
+        {
+          "name": "Crear producto con variantes y relacionados",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201 Created\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "var p = pm.response.json().data;",
+                  "pm.test(\"Stock = suma de las variantes y guarda los relacionados\", function () {",
+                  "    pm.expect(p.stock).to.eql(10);",
+                  "    pm.expect(p.variantes.length).to.eql(3);",
+                  "    pm.expect(p.relacionados).to.eql([1, 2]);",
+                  "});",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"productoVariantesId\", p.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "productos"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 201 Created.\n\nEl stock del producto se calcula sumando el de cada variante.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendedorId\": 2,\n  \"tipo\": \"Producto\",\n  \"nombre\": \"Polerón con capucha\",\n  \"categoriaId\": 3,\n  \"subcategoriaId\": 31,\n  \"descripcion\": \"Polerón con capucha de algodón, bordado a mano en Osorno.\",\n  \"material\": \"Algodón\",\n  \"peso\": \"500 g\",\n  \"tamano\": \"Tallas S a L\",\n  \"color\": \"Rojo\",\n  \"duracion\": \"\",\n  \"sku\": \"TDS-CAP\",\n  \"stock\": 0,\n  \"precio\": 27990,\n  \"edadMinima\": 0,\n  \"estado\": \"Publicada\",\n  \"textoAlternativo\": \"Polerón rojo con capucha doblado sobre una mesa\",\n  \"variantes\": [\n    {\n      \"talla\": \"S\",\n      \"color\": \"Rojo\",\n      \"sku\": \"TDS-CAP-S\",\n      \"stock\": 2,\n      \"precio\": 27990\n    },\n    {\n      \"talla\": \"M\",\n      \"color\": \"Rojo\",\n      \"sku\": \"TDS-CAP-M\",\n      \"stock\": 5,\n      \"precio\": 27990\n    },\n    {\n      \"talla\": \"L\",\n      \"color\": \"Rojo\",\n      \"sku\": \"TDS-CAP-L\",\n      \"stock\": 3,\n      \"precio\": 29990\n    }\n  ],\n  \"relacionados\": [\n    1,\n    2\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear producto con variantes repetidas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "productos"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 400 Bad Request.\n\nDos variantes con la misma talla y color.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendedorId\": 2,\n  \"tipo\": \"Producto\",\n  \"nombre\": \"Polerón con capucha\",\n  \"categoriaId\": 3,\n  \"subcategoriaId\": 31,\n  \"descripcion\": \"Polerón con capucha de algodón, bordado a mano en Osorno.\",\n  \"material\": \"Algodón\",\n  \"peso\": \"500 g\",\n  \"tamano\": \"Tallas S a L\",\n  \"color\": \"Rojo\",\n  \"duracion\": \"\",\n  \"sku\": \"TDS-CAP2\",\n  \"stock\": 0,\n  \"precio\": 27990,\n  \"edadMinima\": 0,\n  \"estado\": \"Publicada\",\n  \"textoAlternativo\": \"Polerón rojo con capucha doblado sobre una mesa\",\n  \"variantes\": [\n    {\n      \"talla\": \"S\",\n      \"color\": \"Rojo\",\n      \"sku\": \"TDS-CAP-S\",\n      \"stock\": 2,\n      \"precio\": 27990\n    },\n    {\n      \"talla\": \"S\",\n      \"color\": \"Rojo\",\n      \"sku\": \"TDS-CAP-S2\",\n      \"stock\": 2,\n      \"precio\": 27990\n    }\n  ],\n  \"relacionados\": [\n    1,\n    2\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear producto relacionado con otra tienda",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "productos"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 400 Bad Request.\n\nLos relacionados deben ser publicaciones del mismo emprendedor.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendedorId\": 2,\n  \"tipo\": \"Producto\",\n  \"nombre\": \"Polerón con capucha\",\n  \"categoriaId\": 3,\n  \"subcategoriaId\": 31,\n  \"descripcion\": \"Polerón con capucha de algodón, bordado a mano en Osorno.\",\n  \"material\": \"Algodón\",\n  \"peso\": \"500 g\",\n  \"tamano\": \"Tallas S a L\",\n  \"color\": \"Rojo\",\n  \"duracion\": \"\",\n  \"sku\": \"TDS-CAP3\",\n  \"stock\": 0,\n  \"precio\": 27990,\n  \"edadMinima\": 0,\n  \"estado\": \"Publicada\",\n  \"textoAlternativo\": \"Polerón rojo con capucha doblado sobre una mesa\",\n  \"variantes\": [],\n  \"relacionados\": [\n    9\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Editar variantes del producto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "pm.test(\"Queda una variante y el stock se actualiza\", function () {",
+                  "    var p = pm.response.json().data;",
+                  "    pm.expect(p.variantes.length).to.eql(1);",
+                  "    pm.expect(p.stock).to.eql(8);",
+                  "    pm.expect(p.relacionados).to.eql([3]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos/{{productoVariantesId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "productos",
+                "{{productoVariantesId}}"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nLas variantes que no vienen se eliminan y las nuevas se agregan.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendedorId\": 2,\n  \"tipo\": \"Producto\",\n  \"nombre\": \"Polerón con capucha\",\n  \"categoriaId\": 3,\n  \"subcategoriaId\": 31,\n  \"descripcion\": \"Polerón con capucha de algodón, bordado a mano en Osorno.\",\n  \"material\": \"Algodón\",\n  \"peso\": \"500 g\",\n  \"tamano\": \"Tallas S a L\",\n  \"color\": \"Rojo\",\n  \"duracion\": \"\",\n  \"sku\": \"TDS-CAP\",\n  \"stock\": 0,\n  \"precio\": 27990,\n  \"edadMinima\": 0,\n  \"estado\": \"Publicada\",\n  \"textoAlternativo\": \"Polerón rojo con capucha doblado sobre una mesa\",\n  \"variantes\": [\n    {\n      \"talla\": \"M\",\n      \"color\": \"Rojo\",\n      \"sku\": \"TDS-CAP-M\",\n      \"stock\": 8,\n      \"precio\": 27990\n    }\n  ],\n  \"relacionados\": [\n    3\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Subir foto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201 Created\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"fotoId\", pm.response.json().data.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos/{{productoVariantesId}}/fotos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "productos",
+                "{{productoVariantesId}}",
+                "fotos"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 201 Created.\n\nLa foto va en base64 y se guarda en la base de datos (máximo 4 por publicación, 2 MB cada una).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"image/png\",\n  \"datos\": \"iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAEElEQVR4nGOQ1bKGIwbiOADRlAghxCHEegAAAABJRU5ErkJggg==\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Ver foto sin token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Devuelve la imagen\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"image/png\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/fotos/{{fotoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "fotos",
+                "{{fotoId}}"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nLas fotos son públicas para poder mostrarlas en la página con <img>.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Subir archivo que no es imagen",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos/{{productoVariantesId}}/fotos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "productos",
+                "{{productoVariantesId}}",
+                "fotos"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 400 Bad Request.\n\nSe revisan los primeros bytes del archivo: solo JPG, PNG o WEBP.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"image/png\",\n  \"datos\": \"ZXN0byBubyBlcyB1bmEgaW1hZ2Vu\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Ver producto con su foto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "pm.test(\"Trae el id de la foto y el texto alternativo\", function () {",
+                  "    var p = pm.response.json().data;",
+                  "    pm.expect(p.fotos[0].id).to.eql(Number(pm.collectionVariables.get(\"fotoId\")));",
+                  "    pm.expect(p.textoAlternativo).to.not.be.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos/{{productoVariantesId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "productos",
+                "{{productoVariantesId}}"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\n"
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar foto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/fotos/{{fotoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "fotos",
+                "{{fotoId}}"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\n"
+          },
+          "response": []
+        },
+        {
+          "name": "Relacionados elegidos por el emprendedor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "pm.test(\"Primero los que eligió el emprendedor\", function () {",
+                  "    var lista = pm.response.json().data;",
+                  "    pm.expect(lista[0].id).to.eql(3);",
+                  "    pm.expect(lista[1].id).to.eql(2);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos/1/relacionados",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "productos",
+                "1",
+                "relacionados"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\n"
           },
           "response": []
         }
@@ -3493,7 +5746,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 204 No Content\", function () { pm.response.to.have.status(204); });"
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
                 ]
               }
             }
@@ -3512,7 +5770,7 @@
                 "{{ofertaId}}"
               ]
             },
-            "description": "Caso de éxito. Código esperado: 204 No Content.\n\nElimina la oferta creada."
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nElimina la oferta creada."
           },
           "response": []
         },
@@ -3655,14 +5913,14 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/vendedores/2/envios/Ancud",
+              "raw": "{{baseUrl}}/api/vendedores/3/envios/Ancud",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "vendedores",
-                "2",
+                "3",
                 "envios",
                 "Ancud"
               ]
@@ -3927,7 +6185,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 204 No Content\", function () { pm.response.to.have.status(204); });"
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
                 ]
               }
             }
@@ -3946,7 +6209,7 @@
                 "{{envioId}}"
               ]
             },
-            "description": "Caso de éxito. Código esperado: 204 No Content.\n\nElimina el costo creado."
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nElimina el costo creado."
           },
           "response": []
         },
@@ -3983,6 +6246,237 @@
               ]
             },
             "description": "Caso de error. Código esperado: 404 Not Found.\n\nEl id no existe."
+          },
+          "response": []
+        },
+        {
+          "name": "Ver configuración de envío",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "pm.test(\"Cobra según el peso\", function () { pm.expect(pm.response.json().data.forma).to.eql(\"Peso\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vendedores/4/envios/configuracion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vendedores",
+                "4",
+                "envios",
+                "configuracion"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\n"
+          },
+          "response": []
+        },
+        {
+          "name": "Calcular envío por peso",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "pm.test(\"2,5 kg = $2.990 + 2 × $1.200\", function () { pm.expect(pm.response.json().data.costo).to.eql(5390); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vendedores/4/envios/Osorno?peso=2.5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vendedores",
+                "4",
+                "envios",
+                "Osorno"
+              ],
+              "query": [
+                {
+                  "key": "peso",
+                  "value": "2.5"
+                }
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\n"
+          },
+          "response": []
+        },
+        {
+          "name": "Calcular envío al resto de la región",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "pm.test(\"Usa la tarifa del resto de la región\", function () {",
+                  "    var e = pm.response.json().data;",
+                  "    pm.expect(e.zona).to.eql(\"Resto de la región\");",
+                  "    pm.expect(e.costo).to.eql(7990);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vendedores/2/envios/Ancud",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vendedores",
+                "2",
+                "envios",
+                "Ancud"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\n"
+          },
+          "response": []
+        },
+        {
+          "name": "Guardar configuración de envío",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vendedores/2/envios/configuracion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vendedores",
+                "2",
+                "envios",
+                "configuracion"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\n",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"forma\": \"Comuna\",\n  \"costoBase\": 0,\n  \"costoKilo\": 0,\n  \"tamanoMaximo\": \"60 × 40 × 40 cm\",\n  \"retiroLocal\": true,\n  \"direccionRetiro\": \"Ramírez 1150, Osorno\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Guardar retiro sin dirección",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vendedores/2/envios/configuracion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vendedores",
+                "2",
+                "envios",
+                "configuracion"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 400 Bad Request.\n\n",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"forma\": \"Comuna\",\n  \"costoBase\": 0,\n  \"costoKilo\": 0,\n  \"tamanoMaximo\": \"\",\n  \"retiroLocal\": true,\n  \"direccionRetiro\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "response": []
         }
@@ -4357,7 +6851,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 204 No Content\", function () { pm.response.to.have.status(204); });"
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
                 ]
               }
             }
@@ -4376,7 +6875,7 @@
                 "{{direccionId}}"
               ]
             },
-            "description": "Caso de éxito. Código esperado: 204 No Content.\n\nSi era la principal, otra dirección del usuario pasa a ser principal."
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nSi era la principal, otra dirección del usuario pasa a ser principal."
           },
           "response": []
         },
@@ -4715,7 +7214,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 204 No Content\", function () { pm.response.to.have.status(204); });"
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
                 ]
               }
             }
@@ -4734,7 +7238,234 @@
                 "{{telefonoId}}"
               ]
             },
-            "description": "Caso de éxito. Código esperado: 204 No Content.\n\nElimina el teléfono creado."
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nElimina el teléfono creado."
+          },
+          "response": []
+        },
+        {
+          "name": "Ver correos adicionales",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "pm.test(\"Trae el correo adicional\", function () { pm.expect(pm.response.json().data[0].correo).to.eql(\"camila.rojas@outlook.com\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/1/correos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "1",
+                "correos"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\n"
+          },
+          "response": []
+        },
+        {
+          "name": "Agregar correo adicional",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201 Created\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"correoId\", pm.response.json().data.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/correos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "correos"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 201 Created.\n\n",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": 1,\n  \"correo\": \"camila.trabajo@gmail.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Agregar correo de otra persona",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 409 Conflict\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/correos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "correos"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 409 Conflict.\n\nCada correo puede pertenecer a una sola persona.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": 1,\n  \"correo\": \"diego.fuentes@gmail.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Disponibilidad de un correo adicional",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "pm.test(\"Aparece como ocupado\", function () { pm.expect(pm.response.json().data.correosOcupados).to.include(\"camila.rojas@outlook.com\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/disponibilidad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "disponibilidad"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\n",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correos\": [\n    \"camila.rojas@outlook.com\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar correo adicional",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/correos/{{correoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "correos",
+                "{{correoId}}"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\n"
           },
           "response": []
         }
@@ -5133,6 +7864,264 @@
               ]
             },
             "description": "Caso de error. Código esperado: 404 Not Found.\n\nEl cliente no existe."
+          },
+          "response": []
+        },
+        {
+          "name": "Comprar una talla y color",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201 Created\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "pm.test(\"Guarda la variante y calcula el envío en el backend\", function () {",
+                  "    var v = pm.response.json().data;",
+                  "    pm.expect(v.items[0].varianteId).to.eql(2);",
+                  "    pm.expect(v.items[0].nombre).to.include(\"Talla M\");",
+                  "    pm.expect(v.envio).to.eql(2990);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/ventas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ventas"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 201 Created.\n\nEl envío lo calcula el backend con la comuna (no se usa el que manda el navegador).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": 1,\n  \"vendedorId\": 2,\n  \"items\": [\n    {\n      \"productoId\": 1,\n      \"varianteId\": 2,\n      \"cantidad\": 1\n    }\n  ],\n  \"medioPago\": {\n    \"tipo\": \"Débito\",\n    \"marca\": \"Visa\",\n    \"ultimos4\": \"4821\"\n  },\n  \"direccion\": \"Av. Juan Mackenna 1270, Osorno\",\n  \"comuna\": \"Osorno\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Comprar sin elegir la talla",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/ventas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ventas"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 400 Bad Request.\n\nEl polerón tiene variantes, hay que mandar varianteId.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": 1,\n  \"vendedorId\": 2,\n  \"items\": [\n    {\n      \"productoId\": 1,\n      \"cantidad\": 1\n    }\n  ],\n  \"medioPago\": {\n    \"tipo\": \"Débito\",\n    \"marca\": \"Visa\",\n    \"ultimos4\": \"4821\"\n  },\n  \"direccion\": \"Av. Juan Mackenna 1270, Osorno\",\n  \"comuna\": \"Osorno\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Comprar con retiro en el local",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201 Created\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "pm.test(\"Sin costo de envío y con la dirección del local\", function () {",
+                  "    var v = pm.response.json().data;",
+                  "    pm.expect(v.envio).to.eql(0);",
+                  "    pm.expect(v.retiro).to.eql(true);",
+                  "    pm.expect(v.direccion).to.include(\"Ramírez 1150\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/ventas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ventas"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 201 Created.\n\n",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": 1,\n  \"vendedorId\": 2,\n  \"items\": [\n    {\n      \"productoId\": 2,\n      \"cantidad\": 1\n    }\n  ],\n  \"medioPago\": {\n    \"tipo\": \"Débito\",\n    \"marca\": \"Visa\",\n    \"ultimos4\": \"4821\"\n  },\n  \"direccion\": \"Retiro en el local\",\n  \"comuna\": \"Osorno\",\n  \"retiro\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Retiro en una tienda que no lo ofrece",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 409 Conflict\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/ventas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ventas"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 409 Conflict.\n\n",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": 1,\n  \"vendedorId\": 4,\n  \"items\": [\n    {\n      \"productoId\": 9,\n      \"cantidad\": 1\n    }\n  ],\n  \"medioPago\": {\n    \"tipo\": \"Débito\",\n    \"marca\": \"Visa\",\n    \"ultimos4\": \"4821\"\n  },\n  \"direccion\": \"Retiro en el local\",\n  \"comuna\": \"Osorno\",\n  \"retiro\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Comprar con envío según peso",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201 Created\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "pm.test(\"2 packs de 1 kg: $2.990 + 1 × $1.200\", function () { pm.expect(pm.response.json().data.envio).to.eql(4190); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/ventas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ventas"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 201 Created.\n\nApícola Los Volcanes cobra según el peso: costo base más costo por kilo adicional.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": 1,\n  \"vendedorId\": 4,\n  \"items\": [\n    {\n      \"productoId\": 11,\n      \"cantidad\": 2\n    }\n  ],\n  \"medioPago\": {\n    \"tipo\": \"Débito\",\n    \"marca\": \"Visa\",\n    \"ultimos4\": \"4821\"\n  },\n  \"direccion\": \"Av. Juan Mackenna 1270, Osorno\",\n  \"comuna\": \"Osorno\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "response": []
         },
@@ -5965,7 +8954,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 204 No Content\", function () { pm.response.to.have.status(204); });"
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
                 ]
               }
             }
@@ -5984,7 +8978,7 @@
                 "{{preguntaId}}"
               ]
             },
-            "description": "Caso de éxito. Código esperado: 204 No Content.\n\nElimina la pregunta creada."
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nElimina la pregunta creada."
           },
           "response": []
         },
@@ -6617,7 +9611,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 204 No Content\", function () { pm.response.to.have.status(204); });"
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
                 ]
               }
             }
@@ -6636,7 +9635,7 @@
                 "3"
               ]
             },
-            "description": "Caso de éxito. Código esperado: 204 No Content.\n\nElimina la cotización 3 y su detalle."
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nElimina la cotización 3 y su detalle."
           },
           "response": []
         },
@@ -6673,6 +9672,104 @@
               ]
             },
             "description": "Caso de error. Código esperado: 404 Not Found.\n\nEl id no existe."
+          },
+          "response": []
+        },
+        {
+          "name": "Ver cotización expirada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "var c = pm.response.json().data.find(function (x) { return x.id === 4; });",
+                  "pm.test(\"Está Expirada y con el precio reajustado\", function () {",
+                  "    pm.expect(c.estado).to.eql(\"Expirada\");",
+                  "    pm.expect(c.respuesta.totalReajustado).to.be.above(c.respuesta.total);",
+                  "    pm.expect(c.respuesta.eliminaEl).to.match(/^\\d{4}-\\d{2}-\\d{2}$/);",
+                  "});",
+                  "pm.collectionVariables.set(\"totalReajustado\", c.respuesta.totalReajustado);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes/1/cotizaciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "1",
+                "cotizaciones"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nSi el cliente no la acepta en 15 días pasa a Expirada, se reajusta cada semana y se elimina a los 45 días."
+          },
+          "response": []
+        },
+        {
+          "name": "Aceptar cotización expirada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "pm.test(\"Se acepta con el precio reajustado\", function () {",
+                  "    pm.expect(pm.response.json().data.respuesta.total).to.eql(Number(pm.collectionVariables.get(\"totalReajustado\")));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cotizaciones/4/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cotizaciones",
+                "4",
+                "estado"
+              ]
+            },
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\n",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"Aceptada\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "response": []
         }
@@ -8185,7 +11282,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 204 No Content\", function () { pm.response.to.have.status(204); });"
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
                 ]
               }
             }
@@ -8204,7 +11306,7 @@
                 "2"
               ]
             },
-            "description": "Caso de éxito. Código esperado: 204 No Content.\n\nElimina la notificación 2."
+            "description": "Caso de éxito. Código esperado: 200 OK.\n\nElimina la notificación 2."
           },
           "response": []
         },
@@ -8602,12 +11704,799 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Seguridad",
+      "description": "Casos de sesión y permisos: sin token responde 401, y un usuario que no corresponde responde 403.",
+      "item": [
+        {
+          "name": "Pedir usuarios sin token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 401 Unauthorized\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 401 Unauthorized.\n\nSin la cabecera Authorization el backend no entrega datos.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Token inventado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 401 Unauthorized\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ventas/10458",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ventas",
+                "10458"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 401 Unauthorized.\n\nLa firma del token no calza, así que se rechaza.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "abc.def",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Disponibilidad para el registro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "pm.test(\"El RUN aparece ocupado\", function () { pm.expect(pm.response.json().data.runOcupado).to.eql(true); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/disponibilidad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "disponibilidad"
+              ]
+            },
+            "description": "Caso exitoso. Código esperado: 200 OK.\n\nRuta pública que usa la pantalla de registro. Solo dice si el RUN, los correos o el RUT de la empresa ya se usan, sin entregar datos de nadie.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"run\": \"20.456.789-1\",\n  \"correos\": [\n    \"camila.rojas@gmail.com\",\n    \"nuevo.correo@gmail.com\"\n  ],\n  \"rutEmpresa\": \"76.000.000-0\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login del cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});",
+                  "if (pm.response.code === 200) { pm.collectionVariables.set(\"tokenCliente\", pm.response.json().data.token); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            },
+            "description": "Caso exitoso. Código esperado: 200 OK.\n\nInicia sesión como Camila (cliente) y guarda su token en tokenCliente. Clave sin cifrar: Clave2026.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"run\": \"20.456.789-1\",\n  \"clave\": \"$2b$10$CompraVenta204567891..GSz/mmN8sIwKKgQJe2TKkqnQWl5TKwi\",\n  \"recordarSesion\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cliente ve sus compras",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes/1/compras",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "1",
+                "compras"
+              ]
+            },
+            "description": "Caso exitoso. Código esperado: 200 OK.\n\nCon su propio id sí puede.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cliente pide la lista de usuarios",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403 Forbidden\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 403 Forbidden.\n\nSolo el administrador puede ver todos los usuarios.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cliente ve las compras de otro cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403 Forbidden\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes/8/compras",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "clientes",
+                "8",
+                "compras"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 403 Forbidden.\n\nNo puede ver datos de otra persona.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cliente edita el perfil de otra persona",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403 Forbidden\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "2"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 403 Forbidden.\n\nNo puede cambiar datos de otra persona.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Diego\",\n  \"apellidos\": \"Fuentes Soto\",\n  \"correo\": \"diego.fuentes@gmail.com\",\n  \"fechaNacimiento\": \"1988-07-02\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cliente crea una categoría",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403 Forbidden\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/categorias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "categorias"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 403 Forbidden.\n\nCrear categorías es solo del administrador.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Juguetes\",\n  \"padreId\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cliente edita un producto ajeno",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403 Forbidden\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos/7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "productos",
+                "7"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 403 Forbidden.\n\nCada emprendedor solo puede cambiar sus publicaciones.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendedorId\": 3,\n  \"tipo\": \"Producto\",\n  \"nombre\": \"Polerón con capucha\",\n  \"categoriaId\": 3,\n  \"subcategoriaId\": 31,\n  \"descripcion\": \"Polerón con capucha de algodón, bordado a mano en Osorno.\",\n  \"material\": \"Algodón\",\n  \"peso\": \"500 g\",\n  \"tamano\": \"Tallas S a L\",\n  \"color\": \"Rojo\",\n  \"duracion\": \"\",\n  \"sku\": \"TDS-CAP\",\n  \"stock\": 0,\n  \"precio\": 27990,\n  \"edadMinima\": 0,\n  \"estado\": \"Publicada\",\n  \"textoAlternativo\": \"Polerón rojo con capucha doblado sobre una mesa\",\n  \"variantes\": [],\n  \"relacionados\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cliente se da el rol Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403 Forbidden\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "1"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 403 Forbidden.\n\n",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roles\": [\n    \"Cliente\",\n    \"Admin\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cliente compra a nombre de otro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403 Forbidden\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/ventas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ventas"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 403 Forbidden.\n\n",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": 9,\n  \"vendedorId\": 2,\n  \"items\": [\n    {\n      \"productoId\": 1,\n      \"varianteId\": 2,\n      \"cantidad\": 1\n    }\n  ],\n  \"medioPago\": {\n    \"tipo\": \"Débito\",\n    \"marca\": \"Visa\",\n    \"ultimos4\": \"4821\"\n  },\n  \"direccion\": \"Av. Juan Mackenna 1270, Osorno\",\n  \"comuna\": \"Osorno\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cliente ve una venta ajena",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403 Forbidden\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ventas/10200",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ventas",
+                "10200"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 403 Forbidden.\n\n",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cliente responde una cotización",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403 Forbidden\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cotizaciones/1/respuesta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cotizaciones",
+                "1",
+                "respuesta"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 403 Forbidden.\n\nSolo el emprendedor al que le pidieron la cotización puede responderla (la cliente que la pidió no).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"precios\": [\n    {\n      \"productoId\": 1,\n      \"precio\": 1\n    }\n  ],\n  \"total\": 20,\n  \"comentario\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cliente borra una oferta ajena",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 403 Forbidden\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Formato {success, message, data, errors}\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(false);",
+                  "    pm.expect(json).to.have.all.keys(\"success\", \"message\", \"data\", \"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ofertas/3",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ofertas",
+                "3"
+              ]
+            },
+            "description": "Caso de error. Código esperado: 403 Forbidden.\n\n",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCliente}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://IP_RASPBERRY:5000",
+      "value": "http://localhost:5000",
       "type": "string"
     },
     {
@@ -8719,6 +12608,71 @@
       "key": "token",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "tokenUrl",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenCliente",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "demoCompaniaId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "productoVariantesId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fotoId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "correoId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "totalReajustado",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenEmprendedor",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenAdmin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "direccionInformeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "productoInformeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "companiaInformeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "usuarioInformeId",
+      "value": "",
+      "type": "string"
     }
   ],
   "event": [
@@ -8738,12 +12692,28 @@
           "pm.collectionVariables.set(\"largoInicio\", dia(250));",
           "pm.collectionVariables.set(\"largoFin\", dia(400));",
           "pm.collectionVariables.set(\"pasado\", dia(-5));",
-          "// token del administrador (sirve para todas las rutas). Se pide una vez y se reutiliza hasta que el backend se reinicie",
-          "if (!pm.collectionVariables.get(\"token\")) {",
-          "  pm.sendRequest({ url: pm.collectionVariables.get(\"baseUrl\") + \"/api/login\", method: \"POST\", header: { \"Content-Type\": \"application/json\" },",
+          "// token del administrador (sirve para todas las rutas). Se pide de nuevo si falta o si cambió baseUrl",
+          "var base = pm.variables.get(\"baseUrl\");",
+          "if (!pm.collectionVariables.get(\"token\") || pm.collectionVariables.get(\"tokenUrl\") !== base) {",
+          "  pm.sendRequest({ url: base + \"/api/login\", method: \"POST\", header: { \"Content-Type\": \"application/json\" },",
           "    body: { mode: \"raw\", raw: JSON.stringify({ run: \"11.111.111-1\", clave: \"$2b$10$CompraVenta111111111..xkoWAlKkagiDUJ3vbsaVfhasSSWGYgG\" }) } },",
-          "    function (err, res) { if (!err && res.code === 200) pm.collectionVariables.set(\"token\", res.json().data.token); });",
+          "    function (err, res) {",
+          "      if (!err && res.code === 200) {",
+          "        pm.collectionVariables.set(\"token\", res.json().data.token);",
+          "        pm.collectionVariables.set(\"tokenUrl\", base);",
+          "      }",
+          "    });",
           "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// si el backend se reinició y el token ya no sirve, se borra para pedir uno nuevo en la siguiente petición",
+          "if (pm.response.code === 401 && pm.response.headers.has(\"WWW-Authenticate\")) { pm.collectionVariables.unset(\"token\"); }"
         ]
       }
     }

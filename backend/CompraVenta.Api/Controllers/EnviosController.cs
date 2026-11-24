@@ -27,19 +27,63 @@ namespace CompraVenta.Api.Controllers
             return Ok(RespuestaApi.Exito("Costos de envío obtenidos.", costos.Select(Mapeo.DeCostoEnvio).ToList()));
         }
 
-        [HttpGet("/api/vendedores/{vendedorId}/envios/{comuna}")]
-        public async Task<IActionResult> CalcularEnvio(int vendedorId, string comuna)
+        // la configuracion va antes que /envios/{comuna} para que "configuracion" no se lea como una comuna
+        [HttpGet("/api/vendedores/{vendedorId}/envios/configuracion")]
+        public async Task<IActionResult> GetConfiguracion(int vendedorId)
         {
-            var buscada = comuna.Trim().ToLower();
-            var costo = await _context.CostosEnvio
-                .FirstOrDefaultAsync(c => c.VendedorId == vendedorId && c.Comuna.ToLower() == buscada);
-            if (costo is null) return NotFound(RespuestaApi.Error($"Este emprendedor no despacha a {comuna}."));
-            return Ok(RespuestaApi.Exito("Costo de envío encontrado.", Mapeo.DeCostoEnvio(costo)));
+            if (await _context.Usuarios.FindAsync(vendedorId) is null)
+                return NotFound(RespuestaApi.Error("Vendedor no encontrado."));
+            var configuracion = await Envios.Configuracion(_context, vendedorId);
+            return Ok(RespuestaApi.Exito("Configuración de envío obtenida.", Mapeo.DeConfiguracionEnvio(configuracion)));
+        }
+
+        [HttpPut("/api/vendedores/{vendedorId}/envios/configuracion")]
+        public async Task<IActionResult> GuardarConfiguracion(int vendedorId, ConfiguracionEnvioDto datos)
+        {
+            if (!this.Puede(vendedorId)) return this.SinPermiso();
+            var vendedor = await _context.Usuarios.FindAsync(vendedorId);
+            if (vendedor is null) return NotFound(RespuestaApi.Error("Vendedor no encontrado."));
+            if (!vendedor.EsVendedor) return Conflict(RespuestaApi.Error("El usuario no tiene el rol Vendedor."));
+
+            var errores = new List<string>();
+            var direccion = (datos.DireccionRetiro ?? "").Trim();
+            if (datos.RetiroLocal && direccion.Length < 5) errores.Add("Para permitir el retiro en el local indica la dirección de retiro.");
+            if (datos.Forma == "Peso" && datos.CostoBase == 0 && datos.CostoKilo == 0)
+                errores.Add("Para cobrar según el peso indica el costo base o el costo por kilo adicional.");
+            if (errores.Count > 0) return BadRequest(RespuestaApi.Error("Datos inválidos.", errores));
+
+            var configuracion = await _context.ConfiguracionesEnvio.FindAsync(vendedorId);
+            if (configuracion is null)
+            {
+                configuracion = new ConfiguracionEnvio { VendedorId = vendedorId };
+                _context.ConfiguracionesEnvio.Add(configuracion);
+            }
+            configuracion.Forma = datos.Forma;
+            configuracion.CostoBase = datos.CostoBase;
+            configuracion.CostoKilo = datos.CostoKilo;
+            configuracion.TamanoMaximo = (datos.TamanoMaximo ?? "").Trim();
+            configuracion.RetiroLocal = datos.RetiroLocal;
+            configuracion.DireccionRetiro = datos.RetiroLocal ? direccion : "";
+            await _context.SaveChangesAsync();
+
+            return Ok(RespuestaApi.Exito("Configuración de envío guardada.", Mapeo.DeConfiguracionEnvio(configuracion)));
+        }
+
+        // ?peso=2.5 (kilos del pedido) se usa cuando el emprendedor cobra segun el peso
+        [HttpGet("/api/vendedores/{vendedorId}/envios/{comuna}")]
+        public async Task<IActionResult> CalcularEnvio(int vendedorId, string comuna, [FromQuery] decimal? peso)
+        {
+            if (peso != null && (peso < 0 || peso > 1000))
+                return BadRequest(RespuestaApi.Error("Datos inválidos.", new List<string> { "El peso debe estar entre 0 y 1000 kg." }));
+            var calculo = await Envios.Calcular(_context, vendedorId, comuna, peso ?? 0);
+            if (calculo is null) return NotFound(RespuestaApi.Error($"Este emprendedor no despacha a {comuna}."));
+            return Ok(RespuestaApi.Exito("Costo de envío calculado.", calculo));
         }
 
         [HttpPost]
         public async Task<IActionResult> CrearCostoEnvio(CostoEnvioCrearDto datos)
         {
+            if (!this.Puede(datos.VendedorId)) return this.SinPermiso("Solo puedes crear costos de envío a tu nombre.");
             var vendedor = await _context.Usuarios.FindAsync(datos.VendedorId);
             if (vendedor is null) return NotFound(RespuestaApi.Error("El vendedor no existe."));
             if (!vendedor.EsVendedor) return Conflict(RespuestaApi.Error("El usuario no tiene el rol Vendedor."));
@@ -60,6 +104,7 @@ namespace CompraVenta.Api.Controllers
         {
             var costo = await _context.CostosEnvio.FindAsync(id);
             if (costo is null) return NotFound(RespuestaApi.Error("Costo de envío no encontrado."));
+            if (!this.Puede(costo.VendedorId)) return this.SinPermiso("Solo puedes cambiar tus propios costos de envío.");
 
             var comuna = datos.Comuna.Trim();
             if (await ComunaRepetida(costo.VendedorId, comuna, id))
@@ -78,10 +123,11 @@ namespace CompraVenta.Api.Controllers
         {
             var costo = await _context.CostosEnvio.FindAsync(id);
             if (costo is null) return NotFound(RespuestaApi.Error("Costo de envío no encontrado."));
+            if (!this.Puede(costo.VendedorId)) return this.SinPermiso("Solo puedes eliminar tus propios costos de envío.");
 
             _context.CostosEnvio.Remove(costo);
             await _context.SaveChangesAsync();
-            return NoContent();
+            return Ok(RespuestaApi.Exito("Costo de envío eliminado correctamente.", null));
         }
 
         private async Task<bool> ComunaRepetida(int vendedorId, string comuna, int idActual)

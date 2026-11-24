@@ -46,5 +46,12 @@ export const registrarUsuario = async (datos) =>
     datos.telefonos.forEach((numero) => {
       memoria.telefonos = [...memoria.telefonos, { id: siguienteId(memoria.telefonos), usuarioId: usuario.id, numero }];
     });
+    // el primer correo es el principal y los demas quedan como adicionales
+    datos.correos.slice(1).forEach((correo) => {
+      memoria.correosAdicionales = [
+        ...memoria.correosAdicionales,
+        { id: siguienteId(memoria.correosAdicionales), usuarioId: usuario.id, correo: correo.trim().toLowerCase() },
+      ];
+    });
     return usuario;
   });

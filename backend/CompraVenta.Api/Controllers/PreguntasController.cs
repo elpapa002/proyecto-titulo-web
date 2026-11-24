@@ -53,6 +53,7 @@ namespace CompraVenta.Api.Controllers
             var producto = await _context.Productos.FindAsync(productoId);
             if (producto is null) return NotFound(RespuestaApi.Error("No existe la publicación."));
 
+            if (!this.Puede(datos.ClienteId)) return this.SinPermiso("Solo puedes preguntar a tu nombre.");
             var cliente = await _context.Usuarios.FindAsync(datos.ClienteId);
             if (cliente is null) return NotFound(RespuestaApi.Error("El cliente no existe."));
             if (producto.VendedorId == datos.ClienteId)
@@ -89,6 +90,7 @@ namespace CompraVenta.Api.Controllers
         {
             var pregunta = await ConsultaPreguntas().FirstOrDefaultAsync(p => p.Id == id);
             if (pregunta is null) return NotFound(RespuestaApi.Error("Pregunta no encontrada."));
+            if (!this.Puede(pregunta.Producto.VendedorId)) return this.SinPermiso("Solo el dueño de la publicación puede responder.");
 
             pregunta.Respuesta = datos.Respuesta.Trim();
             pregunta.FechaRespuesta = Validaciones.Hoy();
@@ -109,12 +111,14 @@ namespace CompraVenta.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> EliminarPregunta(int id)
         {
-            var pregunta = await _context.Preguntas.FindAsync(id);
+            var pregunta = await ConsultaPreguntas().FirstOrDefaultAsync(p => p.Id == id);
             if (pregunta is null) return NotFound(RespuestaApi.Error("Pregunta no encontrada."));
+            // la puede borrar quien pregunto o el dueño de la publicacion
+            if (!this.Puede(pregunta.ClienteId) && !this.Puede(pregunta.Producto.VendedorId)) return this.SinPermiso();
 
             _context.Preguntas.Remove(pregunta);
             await _context.SaveChangesAsync();
-            return NoContent();
+            return Ok(RespuestaApi.Exito("Pregunta eliminada correctamente.", null));
         }
     }
 }

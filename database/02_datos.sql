@@ -30,6 +30,9 @@ INSERT INTO telefono (id, usuario_id, numero) VALUES
     (1, 1, '+56 9 8765 4321'),
     (2, 2, '+56 9 7123 4567');
 
+INSERT INTO correo_adicional (id, usuario_id, correo) VALUES
+    (1, 1, 'camila.rojas@outlook.com');
+
 INSERT INTO categoria (id, nombre, ruta, padre_id) VALUES
     (1, 'Alimentos', 'alimentos', NULL),
     (2, 'Artesanía', 'artesania', NULL),
@@ -64,6 +67,18 @@ INSERT INTO producto (id, vendedor_id, tipo, nombre, sku, categoria_id, subcateg
     (14, 7, 'Producto', 'Taza de greda artesanal', 'GRV-TAZ', 2, 21, 'Taza de greda hecha y pintada a mano.', 'Greda', '350 g', '300 ml', 'Negro con blanco', '', 0, 8990, 15, 'Publicada', 4.8, 96),
     (15, 7, 'Producto', 'Set de platos de greda', 'GRV-PLA', 2, 21, 'Set de 4 platos de greda para servir.', 'Greda', '2 kg', '4 platos de 24 cm', 'Negro', '', 0, 29990, 5, 'Publicada', 4.7, 31);
 
+-- el polerón se vende por talla y color; el stock del producto (14) es la suma de sus variantes
+INSERT INTO variante (id, producto_id, talla, color, sku, stock, precio) VALUES
+    (1, 1, 'S', 'Gris', 'TDS-POL-S-GR', 3, 24990),
+    (2, 1, 'M', 'Azul marino', 'TDS-POL-M-AZ', 4, 24990),
+    (3, 1, 'L', 'Azul marino', 'TDS-POL-L-AZ', 4, 24990),
+    (4, 1, 'XL', 'Negro', 'TDS-POL-XL-NE', 3, 26990);
+
+INSERT INTO producto_relacionado (id, producto_id, relacionado_id) VALUES
+    (1, 1, 3),
+    (2, 1, 2),
+    (3, 9, 11);
+
 INSERT INTO oferta (id, vendedor_id, producto_id, precio_oferta, inicio, fin, difundir) VALUES
     (1, 2, 1, 19990, CURRENT_DATE - 15, CURRENT_DATE + 45, TRUE),
     (2, 2, 2, 8490, CURRENT_DATE - 60, CURRENT_DATE - 30, FALSE),
@@ -82,7 +97,13 @@ INSERT INTO costo_envio (id, vendedor_id, comuna, costo, dias) VALUES
     (7, 4, 'Puerto Varas', 3990, 2),
     (8, 5, 'Osorno', 3490, 1),
     (9, 7, 'Osorno', 2990, 1),
-    (10, 7, 'Puerto Varas', 4990, 3);
+    (10, 7, 'Puerto Varas', 4990, 3),
+    (11, 2, 'Resto de la región', 7990, 5);
+
+-- Darnell Bros cobra por comuna y permite retirar en su local; Apícola Los Volcanes cobra según el peso
+INSERT INTO configuracion_envio (vendedor_id, forma, costo_base, costo_kilo, tamano_maximo, retiro_local, direccion_retiro) VALUES
+    (2, 'Comuna', 0, 0, '60 × 40 × 40 cm', TRUE, 'Ramírez 1150, Osorno'),
+    (4, 'Peso', 2990, 1200, '60 × 40 × 40 cm', FALSE, '');
 
 INSERT INTO venta (id, cliente_id, vendedor_id, fecha, envio, total, medio_tipo, medio_marca, medio_ultimos4, estado_transaccion, estado_pedido, direccion, empresa_transporte, seguimiento, calificada) VALUES
     (10412, 1, 7, '2026-09-26', 2990, 20970, 'Débito', 'Visa', '4821', 'Completada', 'Entregado', 'Av. Juan Mackenna 1270, Osorno', 'Starken', 'STK-871560', TRUE),
@@ -171,13 +192,15 @@ INSERT INTO pregunta (id, producto_id, cliente_id, texto, fecha, respuesta, fech
 INSERT INTO cotizacion (id, cliente_id, vendedor_id, fecha, mensaje, estado, respuesta_total, respuesta_comentario, respuesta_fecha, vigencia) VALUES
     (1, 1, 2, CURRENT_DATE - 6, 'Necesito 20 polerones para el aniversario de mi oficina, con entrega antes de diciembre.', 'Respondida', 350000, 'Incluye bordado del logo de la empresa. Entrega en 3 semanas.', CURRENT_DATE - 4, CURRENT_DATE + 11),
     (2, 1, 5, CURRENT_DATE - 3, 'Queremos la clase para un grupo de 12 personas un sábado de noviembre.', 'Pendiente', NULL, '', NULL, NULL),
-    (3, 9, 2, CURRENT_DATE - 2, '¿Qué precio me dan por 10 gorros y 10 bufandas para regalos de fin de año?', 'Pendiente', NULL, '', NULL, NULL);
+    (3, 9, 2, CURRENT_DATE - 2, '¿Qué precio me dan por 10 gorros y 10 bufandas para regalos de fin de año?', 'Pendiente', NULL, '', NULL, NULL),
+    (4, 1, 2, CURRENT_DATE - 30, '¿Me hacen precio por 5 gorros para mis sobrinos?', 'Respondida', 45000, 'Te dejo cada gorro a $9.000.', CURRENT_DATE - 26, CURRENT_DATE - 11);
 
 INSERT INTO detalle_cotizacion (id, cotizacion_id, producto_id, nombre, cantidad, precio) VALUES
     (1, 1, 1, 'Polerón bordado Osorno', 20, 17500),
     (2, 2, 12, 'Clase de cerveza artesanal', 12, NULL),
     (3, 3, 2, 'Gorro de lana chilota', 10, NULL),
-    (4, 3, 3, 'Bufanda de lana merino', 10, NULL);
+    (4, 3, 3, 'Bufanda de lana merino', 10, NULL),
+    (5, 4, 2, 'Gorro de lana chilota', 5, 9000);
 
 INSERT INTO calificacion (id, venta_id, producto_id, vendedor_id, cliente_id, nota_producto, nota_vendedor, comentario, fecha) VALUES
     (1, 10452, 2, 2, 11, 5, 5, 'Muy abrigador y llegó rápido a Puerto Montt.', '2026-10-14'),
@@ -215,6 +238,14 @@ SELECT setval(pg_get_serial_sequence('direccion', 'id'), COALESCE(MAX(id), 0) + 
 SELECT setval(pg_get_serial_sequence('telefono', 'id'), COALESCE(MAX(id), 0) + 1, false) FROM telefono;
 
 SELECT setval(pg_get_serial_sequence('categoria', 'id'), COALESCE(MAX(id), 0) + 1, false) FROM categoria;
+
+SELECT setval(pg_get_serial_sequence('correo_adicional', 'id'), COALESCE(MAX(id), 0) + 1, false) FROM correo_adicional;
+
+SELECT setval(pg_get_serial_sequence('variante', 'id'), COALESCE(MAX(id), 0) + 1, false) FROM variante;
+
+SELECT setval(pg_get_serial_sequence('foto', 'id'), COALESCE(MAX(id), 0) + 1, false) FROM foto;
+
+SELECT setval(pg_get_serial_sequence('producto_relacionado', 'id'), COALESCE(MAX(id), 0) + 1, false) FROM producto_relacionado;
 
 SELECT setval(pg_get_serial_sequence('producto', 'id'), COALESCE(MAX(id), 0) + 1, false) FROM producto;
 

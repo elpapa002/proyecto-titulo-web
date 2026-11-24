@@ -6,14 +6,17 @@ import BottomBar from "../../organisms/BottomBar/BottomBar";
 import useUser from "../../../contexts/UserContext/useUser";
 import useMediaQuery from "../../../hooks/useMediaQuery/useMediaQuery";
 import { obtenerNotificaciones } from "../../../services/notificacionService";
+import { claveItem, escribirGuardado, leerGuardado } from "../../../utils/guardado";
 import "../../../styles/Tienda.css";
 
 const ClientTemplate = () => {
   const { usuario } = useUser();
   const { esMovil } = useMediaQuery();
   const { pathname } = useLocation();
-  const [favoritos, setFavoritos] = useState([]);
-  const [carro, setCarro] = useState([]);
+  const [favoritos, setFavoritos] = useState(() => leerGuardado("deseos", usuario.id));
+  const [carro, setCarro] = useState(() =>
+    leerGuardado("carro", usuario.id).map((item) => ({ ...item, clave: item.clave ?? claveItem(item.productoId, item.varianteId) }))
+  );
   const [avisosSinLeer, setAvisosSinLeer] = useState(0);
   const [recargas, setRecargas] = useState(0);
 
@@ -25,31 +28,42 @@ const ClientTemplate = () => {
     cargar();
   }, [usuario.id, pathname, recargas]);
 
+  useEffect(() => escribirGuardado("deseos", usuario.id, favoritos), [usuario.id, favoritos]);
+  useEffect(() => escribirGuardado("carro", usuario.id, carro), [usuario.id, carro]);
+
   const alternarFavorito = (id) => {
     setFavoritos((actuales) => (actuales.includes(id) ? actuales.filter((f) => f !== id) : [...actuales, id]));
   };
 
-  const agregarAlCarro = (producto, cantidad) => {
+  // variante es la talla o color elegido en la ficha (null si el producto no tiene variantes)
+  const agregarAlCarro = (producto, cantidad, variante = null) => {
     if (producto.vendedorId === usuario.id) return "No puedes comprar tus propias publicaciones.";
     if (carro.length > 0 && carro[0].vendedorId !== producto.vendedorId) {
       return `Tu carro tiene productos de ${carro[0].tienda}. Cada compra es de un solo emprendedor, termina esa compra o vacía el carro.`;
     }
-    const enCarro = carro.find((item) => item.productoId === producto.id)?.cantidad ?? 0;
-    if (enCarro + cantidad > producto.stock) {
-      return `Solo quedan ${producto.stock} ${producto.tipo === "Servicio" ? "cupos" : "unidades"} disponibles.`;
+    const clave = claveItem(producto.id, variante?.id);
+    const stock = variante ? variante.stock : producto.stock;
+    const enCarro = carro.find((item) => item.clave === clave)?.cantidad ?? 0;
+    if (enCarro + cantidad > stock) {
+      return `Solo quedan ${stock} ${producto.tipo === "Servicio" ? "cupos" : "unidades"} disponibles.`;
     }
     if (enCarro > 0) {
-      setCarro(carro.map((item) => (item.productoId === producto.id ? { ...item, cantidad: enCarro + cantidad } : item)));
+      setCarro(carro.map((item) => (item.clave === clave ? { ...item, cantidad: enCarro + cantidad } : item)));
     } else {
       setCarro([
         ...carro,
         {
+          clave,
           productoId: producto.id,
+          varianteId: variante?.id ?? null,
+          variante: variante ? [variante.talla && `Talla ${variante.talla}`, variante.color].filter(Boolean).join(" · ") : "",
           nombre: producto.nombre,
           tipo: producto.tipo,
-          precio: producto.precioOferta ?? producto.precio,
+          precio: variante ? (variante.precioOferta ?? variante.precio) : (producto.precioOferta ?? producto.precio),
+          peso: producto.peso ?? "",
+          fotoUrl: producto.fotos?.[0]?.url ?? null,
           cantidad,
-          stock: producto.stock,
+          stock,
           vendedorId: producto.vendedorId,
           tienda: producto.tienda,
         },
@@ -58,11 +72,11 @@ const ClientTemplate = () => {
     return "";
   };
 
-  const cambiarCantidad = (productoId, cantidad) => {
-    setCarro(carro.map((item) => (item.productoId === productoId ? { ...item, cantidad } : item)));
+  const cambiarCantidad = (clave, cantidad) => {
+    setCarro(carro.map((item) => (item.clave === clave ? { ...item, cantidad } : item)));
   };
 
-  const quitarDelCarro = (productoId) => setCarro(carro.filter((item) => item.productoId !== productoId));
+  const quitarDelCarro = (clave) => setCarro(carro.filter((item) => item.clave !== clave));
 
   const vaciarCarro = () => setCarro([]);
 

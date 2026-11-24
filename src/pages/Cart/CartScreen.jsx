@@ -31,8 +31,13 @@ const CartScreen = () => {
   };
 
   const quitar = (item) => {
-    console.log("Producto quitado del carro:", { productoId: item.productoId, nombre: item.nombre, cantidad: item.cantidad });
-    quitarDelCarro(item.productoId);
+    console.log("Producto quitado del carro:", {
+      productoId: item.productoId,
+      varianteId: item.varianteId,
+      nombre: item.nombre,
+      cantidad: item.cantidad,
+    });
+    quitarDelCarro(item.clave);
     setAviso("Producto quitado del carro");
   };
 
@@ -94,11 +99,11 @@ const CartScreen = () => {
             </Box>
             <Divider />
             {carro.map((item, i) => (
-              <Box key={item.productoId}>
+              <Box key={item.clave}>
                 {i > 0 && <Divider />}
                 <CartItem
                   item={item}
-                  onCantidad={(cantidad) => cambiarCantidad(item.productoId, cantidad)}
+                  onCantidad={(cantidad) => cambiarCantidad(item.clave, cantidad)}
                   onQuitar={() => quitar(item)}
                 />
               </Box>

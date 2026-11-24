@@ -54,5 +54,13 @@ namespace CompraVenta.Api.DTOs
         [Required(ErrorMessage = "El estado es obligatorio.")]
         [RegularExpression("^(Publicada|Pausada|Borrador)$", ErrorMessage = "El estado debe ser Publicada, Pausada o Borrador.")]
         public string Estado { get; set; }
+
+        [StringLength(150, ErrorMessage = "El texto alternativo de la foto no puede tener más de 150 caracteres.")]
+        public string TextoAlternativo { get; set; }
+
+        // si tiene variantes, el stock del producto es la suma del stock de cada una
+        public List<VarianteCrearDto> Variantes { get; set; }
+
+        public List<int> Relacionados { get; set; }
     }
 }

@@ -2,7 +2,7 @@
 
 Scripts de PostgreSQL (probados en la versión 16) para el proyecto Compra y Venta.
 
-1. `01_tablas.sql` borra (si existen) y crea las 17 tablas con sus llaves, CHECK y UNIQUE.
+1. `01_tablas.sql` borra (si existen) y crea las 22 tablas con sus llaves, CHECK y UNIQUE. Las del Avance 3 son `variante` (talla, color, SKU, stock y precio de cada producto), `foto` (las fotos guardadas en la base), `producto_relacionado`, `configuracion_envio` (cobro por comuna o por peso y retiro en el local) y `correo_adicional`.
 2. `02_datos.sql` carga los mismos datos de ejemplo que usa el frontend en `src/services/datosPrueba.js`, con los mismos id. Incluye ventas desde mayo de 2026 para que los reportes tengan datos. Las ofertas y cotizaciones usan fechas relativas a `CURRENT_DATE`, así siguen vigentes cuando se carga la base otro día. Al final ajusta las secuencias para que los próximos registros sigan desde el último id.
 
 ## Cómo cargarla

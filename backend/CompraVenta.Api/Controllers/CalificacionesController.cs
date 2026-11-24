@@ -34,6 +34,7 @@ namespace CompraVenta.Api.Controllers
             var venta = await _context.Ventas.Include(v => v.Detalles).FirstOrDefaultAsync(v => v.Id == datos.VentaId);
             if (venta is null) return NotFound(RespuestaApi.Error("La compra no existe."));
 
+            if (!this.Puede(datos.ClienteId)) return this.SinPermiso("Solo puedes calificar tus propias compras.");
             var cliente = await _context.Usuarios.FindAsync(datos.ClienteId);
             if (cliente is null) return NotFound(RespuestaApi.Error("El cliente no existe."));
 

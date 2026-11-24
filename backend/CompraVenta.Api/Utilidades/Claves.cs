@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 namespace CompraVenta.Api.Utilidades
 {
     // el frontend manda la clave ya cifrada con bcrypt (src/utils/clave.js)
@@ -12,6 +14,16 @@ namespace CompraVenta.Api.Utilidades
         {
             var sal = ("CompraVenta" + Rut.Limpiar(run)).PadRight(21, '.').Substring(0, 21);
             return "$2b$10$" + sal + ".";
+        }
+
+        // clave temporal al azar, por ejemplo K7PR-M2QW (sin 0, O, 1 ni I para que no se confundan)
+        // se muestra una sola vez al administrador y la persona la cambia al entrar
+        public static string Temporal()
+        {
+            const string letras = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            var bytes = RandomNumberGenerator.GetBytes(8);
+            var texto = new string(bytes.Select(b => letras[b % letras.Length]).ToArray());
+            return texto.Substring(0, 4) + "-" + texto.Substring(4);
         }
 
         // se usa para la clave temporal que crea el administrador

@@ -34,6 +34,7 @@ namespace CompraVenta.Api.Controllers
             var problema = RevisarNumero(datos.Numero);
             if (problema != null) return problema;
 
+            if (!this.Puede(datos.UsuarioId)) return this.SinPermiso();
             if (await _context.Usuarios.FindAsync(datos.UsuarioId) is null)
                 return NotFound(RespuestaApi.Error("El usuario no existe."));
 
@@ -52,6 +53,7 @@ namespace CompraVenta.Api.Controllers
         {
             var telefono = await _context.Telefonos.FindAsync(id);
             if (telefono is null) return NotFound(RespuestaApi.Error("Teléfono no encontrado."));
+            if (!this.Puede(telefono.UsuarioId)) return this.SinPermiso();
 
             var problema = RevisarNumero(datos.Numero);
             if (problema != null) return problema;
@@ -69,10 +71,11 @@ namespace CompraVenta.Api.Controllers
         {
             var telefono = await _context.Telefonos.FindAsync(id);
             if (telefono is null) return NotFound(RespuestaApi.Error("Teléfono no encontrado."));
+            if (!this.Puede(telefono.UsuarioId)) return this.SinPermiso();
 
             _context.Telefonos.Remove(telefono);
             await _context.SaveChangesAsync();
-            return NoContent();
+            return Ok(RespuestaApi.Exito("Teléfono eliminado correctamente.", null));
         }
 
         private IActionResult RevisarNumero(string numero)

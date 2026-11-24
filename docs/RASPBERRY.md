@@ -56,7 +56,7 @@ Al terminar muestra la dirección, por ejemplo `http://192.168.1.50:5000`.
 ## 5. Probar
 
 1. Desde otro equipo de la red abrir `http://IP_RASPBERRY:5000` y entrar con un usuario de prueba (clave `Clave2026`).
-2. En el navegador, `http://IP_RASPBERRY:5000/api/categorias` muestra las categorías en JSON. Lo mismo con `/api/productos`.
+2. En el navegador, `http://IP_RASPBERRY:5000/api/categorias` muestra las categorías en JSON. Las demás rutas piden iniciar sesión, por eso sin token responden 401.
 3. En Postman importar `backend/postman/CompraVenta.postman_collection.json` y cambiar `baseUrl` por `http://IP_RASPBERRY:5000`. La colección se corre sobre la base recién cargada.
 
 ## 6. Actualizar después de un cambio
@@ -72,6 +72,8 @@ Los datos de la base se mantienen. Para volver a cargar los datos de ejemplo des
 ```bash
 REINICIAR_DATOS=si bash raspberry/instalar.sh
 ```
+
+Si la base es de una versión anterior (por ejemplo, sin las tablas del Avance 3 de variantes, fotos, correos y configuración de envío), el script lo detecta y vuelve a cargar las tablas y los datos de prueba.
 
 ## 7. Comandos útiles
 
@@ -102,6 +104,6 @@ y ejecuta `npm run dev`.
 
 ## Problemas comunes
 
-1. "necesita un sistema de 64 bits": se instaló una imagen de 32 bits. Volver a instalar con la de 64 bits (amd64 en VirtualBox).
+1. "necesita un sistema de 64 bits" o "Unsupported architecture: armhf": se instaló Raspberry Pi OS de 32 bits. Se revisa con `dpkg --print-architecture` (tiene que decir `arm64`). Hay que volver a grabar la tarjeta con Raspberry Pi Imager eligiendo Raspberry Pi OS (64-bit), o usar la imagen amd64 en VirtualBox.
 2. La página abre en la máquina virtual pero no desde el celular: la red de VirtualBox está en NAT, cambiarla a Adaptador puente y reiniciar la máquina virtual.
 3. "El servicio no respondió": revisar el error con `sudo journalctl -u compraventa -n 50`. Si dice que no puede conectarse a la base, volver a correr el script con la clave correcta.

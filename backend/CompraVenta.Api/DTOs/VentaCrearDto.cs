@@ -25,5 +25,12 @@ namespace CompraVenta.Api.DTOs
         [Required(ErrorMessage = "La dirección de despacho es obligatoria.")]
         [StringLength(200, MinimumLength = 5, ErrorMessage = "La dirección debe tener entre 5 y 200 caracteres.")]
         public string Direccion { get; set; }
+
+        // comuna de la direccion de despacho; con ella el backend calcula el costo de envio
+        [StringLength(50, ErrorMessage = "La comuna no puede tener más de 50 caracteres.")]
+        public string Comuna { get; set; }
+
+        // true para retirar en el local del emprendedor (envio $0)
+        public bool Retiro { get; set; }
     }
 }

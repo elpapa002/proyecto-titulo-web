@@ -11,10 +11,23 @@ namespace CompraVenta.Api.Controllers
     [Route("api/cotizaciones")]
     public class CotizacionesController : ControllerBase
     {
-        private const int DiasVigencia = 15;
-
         private readonly AppDbContext _context;
         public CotizacionesController(AppDbContext context) => _context = context;
+
+        // las cotizaciones que expiraron hace 45 dias o mas se eliminan antes de mostrar la lista
+        private async Task EliminarAntiguas()
+        {
+            var hoy = Validaciones.Hoy();
+            var limite = hoy.AddDays(-ReglasCotizacion.DiasParaEliminar);
+            var antiguas = await _context.Cotizaciones
+                .Where(c => c.Estado == "Respondida" && c.Vigencia != null && c.Vigencia <= limite)
+                .ToListAsync();
+            if (antiguas.Count == 0) return;
+            var ids = antiguas.Select(c => c.Id).ToList();
+            _context.DetallesCotizacion.RemoveRange(await _context.DetallesCotizacion.Where(d => ids.Contains(d.CotizacionId)).ToListAsync());
+            _context.Cotizaciones.RemoveRange(antiguas);
+            await _context.SaveChangesAsync();
+        }
 
         private IQueryable<Cotizacion> ConsultaCotizaciones()
         {
@@ -30,6 +43,7 @@ namespace CompraVenta.Api.Controllers
             if (await _context.Usuarios.FindAsync(clienteId) is null)
                 return NotFound(RespuestaApi.Error("Cliente no encontrado."));
 
+            await EliminarAntiguas();
             var cotizaciones = await ConsultaCotizaciones()
                 .Where(c => c.ClienteId == clienteId)
                 .OrderByDescending(c => c.Id)
@@ -43,6 +57,7 @@ namespace CompraVenta.Api.Controllers
             if (await _context.Usuarios.FindAsync(vendedorId) is null)
                 return NotFound(RespuestaApi.Error("Vendedor no encontrado."));
 
+            await EliminarAntiguas();
             var cotizaciones = await ConsultaCotizaciones()
                 .Where(c => c.VendedorId == vendedorId)
                 .OrderByDescending(c => c.Id)
@@ -64,6 +79,7 @@ namespace CompraVenta.Api.Controllers
             }
             if (errores.Count > 0) return BadRequest(RespuestaApi.Error("Datos inválidos.", errores));
 
+            if (!this.Puede(datos.ClienteId)) return this.SinPermiso("Solo puedes pedir cotizaciones a tu nombre.");
             var cliente = await _context.Usuarios.FindAsync(datos.ClienteId);
             if (cliente is null) return NotFound(RespuestaApi.Error("El cliente no existe."));
 
@@ -133,6 +149,7 @@ namespace CompraVenta.Api.Controllers
         {
             var cotizacion = await ConsultaCotizaciones().FirstOrDefaultAsync(c => c.Id == id);
             if (cotizacion is null) return NotFound(RespuestaApi.Error("Cotización no encontrada."));
+            if (!this.Puede(cotizacion.VendedorId)) return this.SinPermiso("Solo el emprendedor al que se la pidieron puede responderla.");
 
             var errores = new List<string>();
             foreach (var precio in datos.Precios)
@@ -158,7 +175,7 @@ namespace CompraVenta.Api.Controllers
             cotizacion.RespuestaTotal = datos.Total;
             cotizacion.RespuestaComentario = (datos.Comentario ?? "").Trim();
             cotizacion.RespuestaFecha = Validaciones.Hoy();
-            cotizacion.Vigencia = Validaciones.Hoy().AddDays(DiasVigencia);
+            cotizacion.Vigencia = Validaciones.Hoy().AddDays(ReglasCotizacion.DiasVigencia);
 
             _context.Notificaciones.Add(new Notificacion
             {
@@ -178,14 +195,26 @@ namespace CompraVenta.Api.Controllers
         {
             var cotizacion = await ConsultaCotizaciones().FirstOrDefaultAsync(c => c.Id == id);
             if (cotizacion is null) return NotFound(RespuestaApi.Error("Cotización no encontrada."));
+            if (!this.Puede(cotizacion.ClienteId)) return this.SinPermiso("Solo el cliente que pidió la cotización puede aceptarla o rechazarla.");
 
             if (datos.Estado != "Aceptada" && datos.Estado != "Rechazada")
                 return BadRequest(RespuestaApi.Error("Datos inválidos.", new List<string> { "El estado debe ser Aceptada o Rechazada." }));
 
             if (cotizacion.Estado != "Respondida")
                 return Conflict(RespuestaApi.Error("Solo puedes aceptar o rechazar una cotización que ya fue respondida."));
-            if (datos.Estado == "Aceptada" && Mapeo.EstadoCotizacion(cotizacion) == "Vencida")
-                return Conflict(RespuestaApi.Error("La cotización está vencida y ya no se puede aceptar."));
+            if (ReglasCotizacion.DebeEliminarse(cotizacion))
+                return Conflict(RespuestaApi.Error("La cotización expiró hace más de 45 días y ya no se puede aceptar."));
+
+            // si expiro, se acepta con los precios reajustados
+            var semanas = ReglasCotizacion.Semanas(cotizacion);
+            if (datos.Estado == "Aceptada" && semanas > 0)
+            {
+                cotizacion.RespuestaTotal = ReglasCotizacion.Reajustar(cotizacion.RespuestaTotal ?? 0, semanas);
+                foreach (var detalle in cotizacion.Detalles.Where(d => d.Precio != null))
+                {
+                    detalle.Precio = ReglasCotizacion.Reajustar(detalle.Precio.Value, semanas);
+                }
+            }
 
             cotizacion.Estado = datos.Estado;
 
@@ -207,12 +236,14 @@ namespace CompraVenta.Api.Controllers
         {
             var cotizacion = await _context.Cotizaciones.FindAsync(id);
             if (cotizacion is null) return NotFound(RespuestaApi.Error("Cotización no encontrada."));
+            if (!this.Puede(cotizacion.ClienteId) && !this.Puede(cotizacion.VendedorId)) return this.SinPermiso();
+
 
             var detalles = await _context.DetallesCotizacion.Where(d => d.CotizacionId == id).ToListAsync();
             _context.DetallesCotizacion.RemoveRange(detalles);
             _context.Cotizaciones.Remove(cotizacion);
             await _context.SaveChangesAsync();
-            return NoContent();
+            return Ok(RespuestaApi.Exito("Cotización eliminada correctamente.", null));
         }
     }
 }

@@ -2,6 +2,7 @@ import { Box, FormControlLabel, Link, Paper, Radio, RadioGroup, Stack, Typograph
 import { Link as RouterLink } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
+import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import { formatearPrecio } from "../../../utils/formato";
 
@@ -14,47 +15,66 @@ const Fila = ({ texto, valor }) => (
   </Box>
 );
 
-const CheckoutShipping = ({ direcciones, cargando, direccionId, onElegir, envio, tienda }) => {
+export const RETIRO = "retiro";
+
+const opcion = (elegida) => ({
+  border: elegida ? "2px solid" : "1px solid",
+  borderColor: elegida ? "primary.main" : "text.primary",
+  borderRadius: 1,
+  px: 1.5,
+  py: elegida ? "7px" : 1,
+});
+
+const radio = <Radio size="small" sx={{ color: "primary.main", "&.Mui-checked": { color: "primary.main" } }} />;
+
+// configuracion: forma de calculo, tamaño maximo y retiro en el local del emprendedor
+const CheckoutShipping = ({ direcciones, cargando, direccionId, onElegir, envio, tienda, configuracion, kilos }) => {
   const direccion = direcciones.find((d) => d.id === direccionId);
+  const retiro = direccionId === RETIRO;
+  const porPeso = configuracion?.forma === "Peso";
 
   return (
     <Stack spacing={2}>
       <Paper variant="outlined" sx={tarjeta}>
         <Typography variant="h3" sx={{ mb: 2 }}>
-          Dirección de despacho
+          {configuracion?.retiroLocal ? "Despacho o retiro" : "Dirección de despacho"}
         </Typography>
 
         {cargando && <Typography>Cargando tus direcciones...</Typography>}
-        {!cargando && direcciones.length === 0 && (
+        {!cargando && direcciones.length === 0 && !configuracion?.retiroLocal && (
           <Typography>No tienes direcciones guardadas. Agrega una en Mi perfil para poder continuar.</Typography>
         )}
-        {!cargando && direcciones.length > 0 && (
+        {!cargando && (direcciones.length > 0 || configuracion?.retiroLocal) && (
           <RadioGroup
             name="direccion"
             value={direccionId ?? ""}
-            onChange={(e) => onElegir(Number(e.target.value))}
+            onChange={(e) => onElegir(e.target.value === RETIRO ? RETIRO : Number(e.target.value))}
             aria-label="Dirección de despacho"
           >
             <Stack spacing={1.5}>
+              {configuracion?.retiroLocal && (
+                <Box sx={opcion(retiro)}>
+                  <FormControlLabel
+                    value={RETIRO}
+                    sx={{ m: 0, width: "100%", gap: 0.5, alignItems: "flex-start" }}
+                    control={radio}
+                    label={
+                      <Box sx={{ pt: 0.75 }}>
+                        <Typography sx={{ fontWeight: 600 }}>Retiro en el local de {tienda} · Gratis</Typography>
+                        <Typography variant="body2">{configuracion.direccionRetiro}</Typography>
+                      </Box>
+                    }
+                  />
+                </Box>
+              )}
               {direcciones.map((d) => {
                 const elegida = d.id === direccionId;
                 return (
-                  <Box
-                    key={d.id}
-                    sx={{
-                      border: elegida ? "2px solid" : "1px solid",
-                      borderColor: elegida ? "primary.main" : "text.primary",
-                      borderRadius: 1,
-                      px: 1.5,
-                      py: elegida ? "7px" : 1,
-                    }}
-                  >
+                  <Box key={d.id} sx={opcion(elegida)}>
                     <FormControlLabel
                       value={d.id}
                       sx={{ m: 0, width: "100%", gap: 0.5, alignItems: "flex-start" }}
-                      control={
-                        <Radio size="small" sx={{ color: "primary.main", "&.Mui-checked": { color: "primary.main" } }} />
-                      }
+                      control={radio}
                       label={
                         <Box sx={{ pt: 0.75 }}>
                           <Typography sx={{ fontWeight: 600 }}>
@@ -98,13 +118,34 @@ const CheckoutShipping = ({ direcciones, cargando, direccionId, onElegir, envio,
           <Typography variant="h3">Costo de envío</Typography>
         </Box>
 
-        {!direccion && <Typography>Elige una dirección para calcular el envío.</Typography>}
+        {retiro && (
+          <>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+              <StorefrontOutlinedIcon fontSize="small" />
+              <Typography sx={{ fontWeight: 600 }}>Retiras tu compra en el local</Typography>
+            </Box>
+            <Fila texto="Dirección de retiro" valor={configuracion.direccionRetiro} />
+            <Fila texto="Costo de envío" valor="Gratis" />
+          </>
+        )}
+        {!direccion && !retiro && <Typography>Elige una dirección para calcular el envío.</Typography>}
         {direccion && !envio && <Typography>Calculando el costo de envío a {direccion.comuna}...</Typography>}
         {direccion && envio?.ok && (
           <>
             <Fila texto="Comuna de destino" valor={direccion.comuna} />
             <Fila texto="Emprendedor" valor={tienda} />
-            <Fila texto="Forma de cálculo" valor="Tarifa por comuna del emprendedor" />
+            <Fila
+              texto="Forma de cálculo"
+              valor={
+                porPeso
+                  ? `Según peso: ${formatearPrecio(configuracion.costoBase)} + ${formatearPrecio(configuracion.costoKilo)} por kilo adicional`
+                  : envio.datos.zona && envio.datos.zona !== direccion.comuna
+                    ? `Tarifa del emprendedor para ${envio.datos.zona.toLowerCase()}`
+                    : "Tarifa por comuna del emprendedor"
+              }
+            />
+            {porPeso && <Fila texto="Peso del pedido" valor={`${String(Math.round(kilos * 100) / 100).replace(".", ",")} kg`} />}
+            {configuracion?.tamanoMaximo && <Fila texto="Tamaño máximo por paquete" valor={configuracion.tamanoMaximo} />}
             <Fila
               texto="Tiempo estimado"
               valor={envio.datos.dias === 1 ? "1 día hábil" : `${envio.datos.dias} días hábiles`}

@@ -65,6 +65,19 @@ namespace CompraVenta.Api.Models
         [Column("resenas")]
         public int Resenas { get; set; }
 
+        [Column("texto_alternativo")]
+        public string TextoAlternativo { get; set; } = "";
+
         public List<Oferta> Ofertas { get; set; } = new List<Oferta>();
+
+        [ForeignKey("ProductoId")]
+        public List<Variante> Variantes { get; set; } = new List<Variante>();
+
+        [ForeignKey("ProductoId")]
+        public List<ProductoRelacionado> Relacionados { get; set; } = new List<ProductoRelacionado>();
+
+        // ids de las fotos (sin los bytes, para no cargar las imagenes en cada lista)
+        [NotMapped]
+        public List<int> FotoIds { get; set; } = new List<int>();
     }
 }
